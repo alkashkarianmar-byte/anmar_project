@@ -1,4 +1,3 @@
-
 export type SectionId = 'goals' | 'planning' | 'progress' | 'learning' | 'presentation';
 
 export interface TeacherComment {
@@ -15,11 +14,19 @@ export interface UploadedFile {
 }
 
 export interface AchievementSection {
-  id: SectionId;
+  id: string;
+  type: SectionId;
   title: string;
   content: string;
   file?: UploadedFile;
   comments: TeacherComment[];
+  lastUpdated: string;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  level: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface StudentData {
@@ -28,5 +35,8 @@ export interface StudentData {
   date: string;
   school: string;
   location: string;
+  profileImageUrl: string;
+  bio: string;
   achievements: AchievementSection[];
+  skills: Skill[];
 }
