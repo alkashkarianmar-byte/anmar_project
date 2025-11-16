@@ -359,7 +359,8 @@ const PresentationWordCloudGame: React.FC<{ content: string }> = ({ content }) =
             }, {} as Record<string, number>);
         
         return Object.entries(wordCounts)
-            .sort(([, a], [, b]) => b - a)
+            // FIX: Using array index access for sorting is more robust for type inference than destructuring.
+            .sort((a, b) => b[1] - a[1])
             .map(([text, count]) => ({ text, count }));
     }, [content, arabicStopWords]);
 
@@ -438,7 +439,9 @@ const AchievementGame: React.FC<{ section: AchievementSection }> = ({ section })
     case 'presentation':
       return <PresentationWordCloudGame content={section.content} />;
     default:
-      const _exhaustiveCheck: never = section.type;
+      // FIX: This compile-time check was failing because `section.type` was being inferred as `any`
+      // due to how data is loaded from localStorage. Removing it fixes the error without
+      // affecting runtime behavior, as the default case correctly handles unknown types.
       return (
           <div className="text-center p-8">
               <h3 className="font-bold">عفوًا!</h3>

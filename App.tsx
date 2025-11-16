@@ -26,7 +26,10 @@ const initialData: StudentData = {
       { id: '1', teacherName: 'أ. محمد', comment: 'عمل رائع يا أنمار! مشروعك كان مميزًا جدًا.', timestamp: new Date('2014-11-05T09:00:00Z').toISOString() }
     ], lastUpdated: new Date('2014-11-05T09:00:00Z').toISOString()},
   ],
-  skills: [],
+  skills: [
+    { id: 'default-skill-1', name: 'البرمجة', level: 3 },
+    { id: 'default-skill-2', name: 'البادل', level: 3 },
+  ],
   subjects: [
       { id: 'subject-1', name: 'الرياضيات', reason: 'أحب حل المسائل الصعبة واكتشاف الأنماط في الأرقام والأشكال.' },
       { id: 'subject-2', name: 'العلوم', reason: 'أستمتع بإجراء التجارب في المختبر وتعلم كيف يعمل العالم من حولنا.' },
@@ -49,27 +52,36 @@ const loadStudentData = (): StudentData => {
         const savedDataString = window.localStorage.getItem(localStorageKey);
         if (savedDataString) {
             const savedData = JSON.parse(savedDataString);
-            
-            // Merge with initialData to gracefully handle schema changes over time.
-            const mergedData = {
+
+            // Ensure savedData is a valid object before proceeding
+            if (typeof savedData !== 'object' || savedData === null || Array.isArray(savedData)) {
+                throw new Error("Saved data is not a plain object.");
+            }
+
+            // Safely merge arrays, falling back to initial data if the saved data is not an array.
+            const achievements = Array.isArray(savedData.achievements)
+                ? savedData.achievements.map((ach: any) => ({ // also ensure each achievement is well-formed
+                    ...ach,
+                    comments: Array.isArray(ach.comments) ? ach.comments : [],
+                  }))
+                : initialData.achievements;
+
+            const skills = Array.isArray(savedData.skills) ? savedData.skills : initialData.skills;
+            const subjects = Array.isArray(savedData.subjects) ? savedData.subjects : initialData.subjects;
+
+            // Reconstruct the data object, starting with defaults, overwriting with saved scalar values,
+            // and then adding the sanitized arrays.
+            return {
                 ...initialData,
                 ...savedData,
-                achievements: savedData.achievements || initialData.achievements,
-                skills: savedData.skills || initialData.skills,
-                subjects: savedData.subjects || initialData.subjects,
+                achievements,
+                skills,
+                subjects,
             };
-            
-            // Ensure nested structures like comments array exist to prevent crashes
-            mergedData.achievements = mergedData.achievements.map((ach: AchievementSection) => ({
-                ...ach,
-                comments: ach.comments || []
-            }));
-
-            return mergedData;
         }
     } catch (error) {
         console.error("Failed to load or parse data from localStorage. Resetting to initial data to prevent app corruption.", error);
-        // If parsing fails, the saved data is corrupted. Remove it.
+        // If parsing fails or data is invalid, the saved data is likely corrupted. Remove it.
         window.localStorage.removeItem(localStorageKey);
     }
     // Return initial data if nothing is saved or if there was an error
