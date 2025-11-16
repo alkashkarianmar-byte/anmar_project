@@ -309,7 +309,10 @@ const App: React.FC = () => {
         await db.collection('studentData').doc('main').update(finalData);
         setStudentData(prev => prev ? { ...prev, ...finalData } : null);
         setIsProfileModalOpen(false);
-    } catch (error) { console.error("Error updating profile:", error); }
+    } catch (error) { 
+        console.error("Error updating profile:", error);
+        throw error;
+    }
   };
 
   const handleAddComment = async (sectionId: string) => {
@@ -335,6 +338,39 @@ const App: React.FC = () => {
       }
       setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
       setNewComment(prev => ({ ...prev, [sectionId]: '' }));
+  };
+
+  const handleDeleteComment = async (sectionId: string, commentId: string) => {
+    if (!studentData || mode !== 'admin' || !window.confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
+
+    try {
+      const updatedAchievements = studentData.achievements.map(section => {
+        if (section.id === sectionId) {
+          const updatedComments = section.comments.filter(comment => comment.id !== commentId);
+          return { ...section, comments: updatedComments };
+        }
+        return section;
+      });
+
+      // Update Firestore
+      await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+
+      // Update local state
+      setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+
+      // Update the state for the currently open modal if it matches
+      if (viewingCommentsFor?.id === sectionId) {
+        setViewingCommentsFor(prev => {
+          if (!prev) return null;
+          const updatedComments = prev.comments.filter(c => c.id !== commentId);
+          return { ...prev, comments: updatedComments };
+        });
+      }
+
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert('حدث خطأ أثناء حذف التعليق.');
+    }
   };
   
   const handleGetAiFeedback = async (section: AchievementSection) => {
@@ -733,12 +769,23 @@ const App: React.FC = () => {
                     <p className="text-slate-500 dark:text-slate-400 text-center py-4">لا توجد تعليقات بعد.</p>
                 ) : (
                     section.comments.map(comment => (
-                        <div key={comment.id} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{comment.teacherName}</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(comment.timestamp).toLocaleString('ar-SA')}</p>
+                        <div key={comment.id} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 flex justify-between items-start gap-2">
+                           <div className="flex-grow">
+                                <div className="flex justify-between items-center mb-1">
+                                    <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{comment.teacherName}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(comment.timestamp).toLocaleString('ar-SA')}</p>
+                                </div>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
+                             {mode === 'admin' && (
+                                <button 
+                                    onClick={() => handleDeleteComment(section.id, comment.id)} 
+                                    className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+                                    title="حذف التعليق"
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     ))
                 )}

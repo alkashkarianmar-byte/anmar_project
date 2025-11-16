@@ -1,11 +1,12 @@
 
+
 import React, { useState } from 'react';
 import { StudentData } from '../types';
 import { UploadIcon } from './icons';
 
 interface ProfileEditFormProps {
   student: Pick<StudentData, 'name' | 'bio' | 'profileImageUrl'>;
-  onSave: (updatedData: { name: string; bio: string; }, newImageFile: File | null) => void;
+  onSave: (updatedData: { name: string; bio: string; }, newImageFile: File | null) => Promise<void>;
   onClose: () => void;
 }
 
@@ -14,6 +15,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
   const [bio, setBio] = useState(student.bio);
   const [imagePreview, setImagePreview] = useState<string>(student.profileImageUrl);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,9 +29,17 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, bio }, imageFile);
+    setIsLoading(true);
+    try {
+      await onSave({ name, bio }, imageFile);
+      // On success, the modal will be closed by the parent component
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("حدث خطأ أثناء حفظ التغييرات. الرجاء المحاولة مرة أخرى.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,6 +66,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={isLoading}
         />
       </div>
       <div>
@@ -66,11 +77,18 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
           onChange={(e) => setBio(e.target.value)}
           rows={3}
           className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={isLoading}
         />
       </div>
       <div className="flex justify-end gap-3 pt-4">
-        <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">حفظ التغييرات</button>
+        <button type="button" onClick={onClose} disabled={isLoading} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors disabled:opacity-50">إلغاء</button>
+        <button 
+          type="submit" 
+          disabled={isLoading} 
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed w-32"
+        >
+          {isLoading ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
+        </button>
       </div>
     </form>
   );
