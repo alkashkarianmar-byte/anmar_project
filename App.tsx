@@ -167,6 +167,7 @@ const App: React.FC = () => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [playingGame, setPlayingGame] = useState<AchievementSection | null>(null);
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
+  const [newCommentAuthor, setNewCommentAuthor] = useState<{ [key: string]: string }>({});
   const [isAiLoading, setIsAiLoading] = useState<{ [key: string]: boolean }>({});
   
   const [mode, setMode] = useState<'visitor' | 'admin'>('visitor');
@@ -316,28 +317,39 @@ const App: React.FC = () => {
   };
 
   const handleAddComment = async (sectionId: string) => {
-      const commentText = newComment[sectionId]?.trim();
-      if (!commentText || mode !== 'admin' || !studentData) return;
+    const commentText = newComment[sectionId]?.trim();
+    const authorName = mode === 'admin' ? 'أ. معلم' : newCommentAuthor[sectionId]?.trim();
 
-      const comment: TeacherComment = {
-          id: new Date().toISOString(),
-          teacherName: 'أ. معلم',
-          comment: commentText,
-          timestamp: new Date().toISOString(),
-      };
-      
-      const updatedAchievements = studentData.achievements.map(s => 
-          s.id === sectionId ? { ...s, comments: [...s.comments, comment] } : s
-      );
-      
-      // FIX: Use Firebase v8 namespaced API
-      await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
-      
-      if (viewingCommentsFor?.id === sectionId) {
-          setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, comment] } : null);
+    if (!studentData || !commentText || !authorName) {
+      if (!authorName && mode !== 'admin') {
+          alert('الرجاء إدخال اسمك.');
+      } else if (!commentText) {
+          alert('الرجاء كتابة تعليق.');
       }
-      setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
-      setNewComment(prev => ({ ...prev, [sectionId]: '' }));
+      return;
+    }
+
+    const comment: TeacherComment = {
+        id: new Date().toISOString() + Math.random(),
+        teacherName: authorName,
+        comment: commentText,
+        timestamp: new Date().toISOString(),
+    };
+    
+    const updatedAchievements = studentData.achievements.map(s => 
+        s.id === sectionId ? { ...s, comments: [...s.comments, comment] } : s
+    );
+    
+    await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+    
+    if (viewingCommentsFor?.id === sectionId) {
+        setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, comment] } : null);
+    }
+    setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+    setNewComment(prev => ({ ...prev, [sectionId]: '' }));
+    if (mode !== 'admin') {
+      setNewCommentAuthor(prev => ({ ...prev, [sectionId]: '' }));
+    }
   };
 
   const handleDeleteComment = async (sectionId: string, commentId: string) => {
@@ -797,33 +809,32 @@ const App: React.FC = () => {
                     ))
                 )}
             </div>
-            {mode === 'admin' ? (
-                <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
-                    <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
-                    <div className="flex gap-2">
+             <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
+                <div className="space-y-3">
+                    {mode !== 'admin' && (
                         <input
                             type="text"
+                            value={newCommentAuthor[section.id] || ''}
+                            onChange={(e) => setNewCommentAuthor(prev => ({ ...prev, [section.id]: e.target.value }))}
+                            placeholder="اسمك"
+                            className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                        />
+                    )}
+                    <div className="flex gap-2">
+                        <textarea
                             value={newComment[section.id] || ''}
                             onChange={(e) => setNewComment(prev => ({ ...prev, [section.id]: e.target.value }))}
                             placeholder="اكتب تعليقك هنا..."
-                            className="flex-grow p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            rows={2}
+                            className="flex-grow p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none"
                         />
-                        <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors self-start">
                             <SendIcon />
                         </button>
                     </div>
                 </div>
-            ) : (
-              <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4 text-center">
-                  <p className="text-sm text-slate-500 dark:text-slate-400 p-4 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
-                      إضافة التعليقات متاحة للمعلمين فقط. 
-                      <button onClick={handleAdminLoginAndCloseCommentModal} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline pr-1">
-                          سجل دخولك
-                      </button> 
-                      لإضافة تعليق.
-                  </p>
-              </div>
-            )}
+            </div>
         </Modal>
     );
   };
