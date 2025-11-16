@@ -177,7 +177,7 @@ const App: React.FC = () => {
   // Fetch data from Firestore on initial load
   useEffect(() => {
     const fetchData = async () => {
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         const docRef = db.collection('studentData').doc('main');
         const docSnap = await docRef.get();
 
@@ -185,7 +185,7 @@ const App: React.FC = () => {
             setStudentData(docSnap.data() as StudentData);
         } else {
             console.log("No such document! Creating initial data.");
-            // FIX: Using Firebase v8 compat syntax
+            // FIX: Use Firebase v8 namespaced API
             await docRef.set(initialData);
             setStudentData(initialData);
         }
@@ -209,7 +209,7 @@ const App: React.FC = () => {
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
   const uploadFile = async (file: File, path: string): Promise<UploadedFile> => {
-    // FIX: Using Firebase v8 compat syntax for Storage
+    // FIX: Use Firebase v8 namespaced API
     const storageRef = storage.ref(path);
     await storageRef.put(file);
     const downloadURL = await storageRef.getDownloadURL();
@@ -218,7 +218,7 @@ const App: React.FC = () => {
 
   const deleteFileByUrl = async (fileUrl: string) => {
       try {
-          // FIX: Using Firebase v8 compat syntax for Storage
+          // FIX: Use Firebase v8 namespaced API
           const fileRef = storage.refFromURL(fileUrl);
           await fileRef.delete();
       } catch (error) {
@@ -229,6 +229,7 @@ const App: React.FC = () => {
   const handleUpdateSection = async (updatedSection: AchievementSection, newFile: File | null, fileRemoved: boolean) => {
     if (!studentData) return;
     try {
+        // FIX: Use Firebase v8 namespaced API
         const docRef = db.collection('studentData').doc('main');
         let finalSection = { ...updatedSection };
 
@@ -246,7 +247,7 @@ const App: React.FC = () => {
         }
 
         const updatedAchievements = studentData.achievements.map(s => s.id === finalSection.id ? finalSection : s);
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         await docRef.update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
     } catch (error) { console.error("Error updating section:", error); }
@@ -261,7 +262,7 @@ const App: React.FC = () => {
         }
         
         const updatedAchievements = studentData.achievements.filter(s => s.id !== sectionId);
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
     } catch (error) { console.error("Error deleting achievement:", error); }
@@ -283,7 +284,7 @@ const App: React.FC = () => {
         }
 
         const updatedAchievements = [...studentData.achievements, newAchievement];
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
         setIsAddModalOpen(false);
@@ -304,7 +305,7 @@ const App: React.FC = () => {
         }
 
         const finalData = { ...updatedData, profileImageUrl };
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update(finalData);
         setStudentData(prev => prev ? { ...prev, ...finalData } : null);
         setIsProfileModalOpen(false);
@@ -326,7 +327,7 @@ const App: React.FC = () => {
           s.id === sectionId ? { ...s, comments: [...s.comments, comment] } : s
       );
       
-      // FIX: Using Firebase v8 compat syntax
+      // FIX: Use Firebase v8 namespaced API
       await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
       
       if (viewingCommentsFor?.id === sectionId) {
@@ -350,7 +351,7 @@ const App: React.FC = () => {
         const aiComment: TeacherComment = { id: new Date().toISOString(), teacherName: 'مرشد الذكاء الاصطناعي', comment: aiCommentText, timestamp: new Date().toISOString() };
         
         const updatedAchievements = studentData.achievements.map(s => s.id === section.id ? { ...s, comments: [...s.comments, aiComment] } : s);
-        // FIX: Using Firebase v8 compat syntax
+        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         if (viewingCommentsFor?.id === section.id) {
             setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, aiComment] } : null);
@@ -366,14 +367,14 @@ const App: React.FC = () => {
               if (!studentData) return;
               const newItem = { ...newItemData, id: `${dataType}-${Date.now()}` } as T;
               const updatedData = [...studentData[dataType], newItem];
-              // FIX: Using Firebase v8 compat syntax
+              // FIX: Use Firebase v8 namespaced API
               await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
               setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
           },
           handleDelete: async (itemId: string) => {
               if (!studentData || !window.confirm(`هل أنت متأكد من الحذف؟`)) return;
               const updatedData = studentData[dataType].filter(item => item.id !== itemId);
-              // FIX: Using Firebase v8 compat syntax
+              // FIX: Use Firebase v8 namespaced API
               await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
               setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
           }

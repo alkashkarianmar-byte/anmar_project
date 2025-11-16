@@ -1,5 +1,6 @@
 
 
+// FIX: Updated Firebase imports to use the v9 compatibility library to support the existing v8 syntax.
 import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "firebase/compat/storage";
@@ -19,6 +20,7 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
 const db = firebase.firestore();
 const storage = firebase.storage();
 
