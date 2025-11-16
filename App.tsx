@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AchievementSection, StudentData, TeacherComment, UploadedFile, SectionId, Skill, Subject } from './types';
-import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, ImageFileIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, LoginIcon, BookIcon } from './components/icons';
+import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, ImageFileIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, LoginIcon, BookIcon, MenuIcon, CloseIcon } from './components/icons';
 import Modal from './components/Modal';
 import AchievementGame from './components/AchievementGame';
 import ProfileEditForm from './components/ProfileEditForm';
@@ -44,6 +43,15 @@ const sectionTypeTitles: { [key in SectionId]: string } = {
   learning: 'التعلم من التجارب',
   presentation: 'عرض الإنجازات',
 };
+
+const sectionStyles: { [key in SectionId]: { border: string; bg: string; text: string; } } = {
+  goals: { border: 'border-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-600 dark:text-blue-400' },
+  planning: { border: 'border-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-600 dark:text-purple-400' },
+  progress: { border: 'border-green-500', bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-600 dark:text-green-400' },
+  learning: { border: 'border-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-600 dark:text-yellow-400' },
+  presentation: { border: 'border-red-500', bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-600 dark:text-red-400' },
+};
+
 
 const localStorageKey = 'studentPortfolioData';
 
@@ -430,9 +438,10 @@ const App: React.FC = () => {
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [isAiLoading, setIsAiLoading] = useState<{ [key: string]: boolean }>({});
   
-  // New Admin/Visitor Mode State
   const [mode, setMode] = useState<'visitor' | 'admin'>('visitor');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [viewingCommentsFor, setViewingCommentsFor] = useState<AchievementSection | null>(null);
  
   useEffect(() => {
     if (theme === 'dark') {
@@ -538,16 +547,26 @@ const App: React.FC = () => {
         timestamp: new Date().toISOString(),
     };
 
-    setStudentData(prevData => ({
-        ...prevData,
-        achievements: prevData.achievements.map(s => {
+    const updateAndRefreshComments = (prevData: StudentData) => {
+        const updatedAchievements = prevData.achievements.map(s => {
             if (s.id === sectionId) {
                 return { ...s, comments: [...s.comments, comment] };
             }
             return s;
-        })
-    }));
+        });
+        
+        // Update the state for the modal as well
+        if (viewingCommentsFor && viewingCommentsFor.id === sectionId) {
+            setViewingCommentsFor(prev => prev ? {...prev, comments: [...prev.comments, comment]} : null);
+        }
 
+        return {
+            ...prevData,
+            achievements: updatedAchievements
+        };
+    };
+
+    setStudentData(updateAndRefreshComments);
     setNewComment(prev => ({...prev, [sectionId]: ''}));
   };
 
@@ -618,34 +637,49 @@ const App: React.FC = () => {
     <header className="sticky top-0 z-40 w-full backdrop-blur flex-none transition-colors duration-500 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
-                <div className="flex items-center gap-4">
-                    <div className="bg-blue-500 text-white font-bold text-xl rounded-md p-2">إ</div>
+                <div className="flex items-center gap-2">
                     <h1 className="text-xl font-bold text-slate-800 dark:text-white">إنجازاتي</h1>
                      {mode === 'admin' && <span className="text-xs font-bold text-green-500 bg-green-100 dark:bg-green-900/50 dark:text-green-400 px-2 py-1 rounded-full">وضع المدير</span>}
                 </div>
-                <nav className="flex items-center gap-1 sm:gap-2">
-                    <button onClick={() => setView('home')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
-                    <button onClick={() => setView('dashboard')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
-                    <button onClick={() => setView('skills')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
-                    <button onClick={() => setView('subjects')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
-                    <button onClick={() => setView('timeline')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
-                    <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                        {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
+                <div className="flex items-center">
+                    <nav className="hidden md:flex items-center gap-1">
+                        <button onClick={() => setView('home')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
+                        <button onClick={() => setView('dashboard')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
+                        <button onClick={() => setView('skills')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
+                        <button onClick={() => setView('subjects')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
+                        <button onClick={() => setView('timeline')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
+                    </nav>
+                    <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 ml-2 pl-2">
+                        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                            {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
+                        </button>
+                        {mode === 'admin' ? (
+                            <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير">
+                                <UnlockIcon className="w-5 h-5 text-green-500" />
+                            </button>
+                        ) : (
+                             <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير">
+                                <LockIcon className="w-5 h-5 text-slate-500" />
+                            </button>
+                        )}
+                    </div>
+                    <button onClick={() => setIsMobileMenuOpen(prev => !prev)} className="md:hidden p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-2">
+                        {isMobileMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
                     </button>
-                    {mode === 'admin' ? (
-                        <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير">
-                            <UnlockIcon className="w-5 h-5 text-green-500" />
-                        </button>
-                    ) : (
-                         <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير">
-                            <LockIcon className="w-5 h-5 text-slate-500" />
-                        </button>
-                    )}
-                </nav>
+                </div>
             </div>
         </div>
+        {isMobileMenuOpen && (
+            <nav className="md:hidden flex flex-col p-4 gap-3 border-t border-slate-200 dark:border-slate-700">
+                <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
+                <button onClick={() => { setView('dashboard'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
+                <button onClick={() => { setView('skills'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
+                <button onClick={() => { setView('subjects'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
+                <button onClick={() => { setView('timeline'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
+            </nav>
+        )}
     </header>
-  ), [theme, view, mode]);
+  ), [theme, view, mode, isMobileMenuOpen]);
   
   const HomeView = () => (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center animate-fade-in">
@@ -684,7 +718,7 @@ const App: React.FC = () => {
             <AnimatedHeader page="dashboard" />
         </div>
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg mb-10 border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">معلومات الطالب</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-slate-700 dark:text-slate-300">
@@ -695,7 +729,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               {mode === 'admin' && (
-                <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                <button onClick={() => setIsProfileModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                   <EditIcon className="w-4 h-4"/>
                   تعديل الملف الشخصي
                 </button>
@@ -704,69 +738,55 @@ const App: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {studentData.achievements.map((section, index) => (
-                <div key={section.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 flex flex-col transition-transform duration-300 hover:-translate-y-2 border border-slate-200 dark:border-slate-700" style={{ animationDelay: `${index * 100}ms` }}>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
-                            <SectionIcon sectionType={section.type} className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">{section.title}</h3>
-                      </div>
-                       <div className="flex items-center gap-1">
-                           <button onClick={() => setPlayingGame(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Play game for ${section.title}`}>
-                               <GameIcon />
-                           </button>
-                           {mode === 'admin' && (
-                            <>
-                               <button onClick={() => handleGetAiFeedback(section)} disabled={isAiLoading[section.id]} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label={`Get AI feedback for ${section.title}`}>
-                                   {isAiLoading[section.id] ? <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon />}
-                               </button>
-                               <button onClick={() => setEditingSection(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Edit ${section.title}`}>
-                                   <EditIcon />
-                               </button>
-                               <button onClick={() => handleDeleteAchievement(section.id)} className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors" aria-label={`Delete ${section.title}`}>
-                                   <TrashIcon />
-                               </button>
-                            </>
-                           )}
-                       </div>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 flex-grow mb-4">{section.content}</p>
-                    
-                    {section.file && renderFilePreview(section.file)}
-
-                    <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
-                        <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-3">تعليقات المعلمين</h4>
-                        <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
-                           {section.comments.length > 0 ? section.comments.map(comment => (
-                               <div key={comment.id} className={`p-3 rounded-lg ${comment.teacherName === 'مرشد الذكاء الاصطناعي' ? 'bg-purple-50 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-800' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
-                                   <p className="text-sm text-slate-600 dark:text-slate-300">{comment.comment}</p>
-                                   <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-left flex items-center gap-1.5 justify-end">
-                                        {comment.teacherName === 'مرشد الذكاء الاصطناعي' && <SparklesIcon className="w-3 h-3 text-purple-500" />}
-                                        <span>{comment.teacherName} - {new Date(comment.timestamp).toLocaleDateString('ar')}</span>
-                                   </div>
-                               </div>
-                           )) : <p className="text-sm text-slate-400 italic">لا توجد تعليقات بعد.</p>}
-                        </div>
-                        {mode === 'admin' && (
-                            <div className="mt-4 flex gap-2">
-                                <input 
-                                    type="text"
-                                    placeholder="أضف تعليقًا..."
-                                    value={newComment[section.id] || ''}
-                                    onChange={(e) => handleCommentChange(section.id, e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(section.id)}
-                                    className="flex-grow p-2 text-sm border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-                                    <SendIcon />
-                                </button>
+            {studentData.achievements.map((section, index) => {
+                const styles = sectionStyles[section.type] || sectionStyles.goals;
+                return (
+                    <div key={section.id} className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 flex flex-col transition-transform duration-300 hover:-translate-y-2 border-t-4 ${styles.border}`} style={{ animationDelay: `${index * 100}ms` }}>
+                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-full ${styles.bg}`}>
+                                <SectionIcon sectionType={section.type} className={`w-6 h-6 ${styles.text}`} />
                             </div>
-                        )}
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{section.title}</h3>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <button onClick={() => setPlayingGame(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Play game for ${section.title}`}>
+                                <GameIcon />
+                            </button>
+                            {mode === 'admin' && (
+                            <>
+                                <button onClick={() => handleGetAiFeedback(section)} disabled={isAiLoading[section.id]} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label={`Get AI feedback for ${section.title}`}>
+                                    {isAiLoading[section.id] ? <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon />}
+                                </button>
+                                <button onClick={() => setEditingSection(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Edit ${section.title}`}>
+                                    <EditIcon />
+                                </button>
+                                <button onClick={() => handleDeleteAchievement(section.id)} className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors" aria-label={`Delete ${section.title}`}>
+                                    <TrashIcon />
+                                </button>
+                            </>
+                            )}
+                        </div>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 flex-grow mb-4">{section.content}</p>
+                        
+                        {section.file && renderFilePreview(section.file)}
+
+                        <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                            {section.comments.length > 0 || mode === 'admin' ? (
+                                <button
+                                    onClick={() => setViewingCommentsFor(section)}
+                                    className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 rounded-md px-2 py-1"
+                                >
+                                    {section.comments.length > 0 ? `عرض التعليقات (${section.comments.length})` : 'أضف تعليقاً'}
+                                </button>
+                            ) : (
+                                <p className="text-sm text-slate-400 dark:text-slate-500 italic"></p>
+                            )}
+                        </div>
                     </div>
-                </div>
-            ))}
+                )
+            })}
             {mode === 'admin' && (
                  <div 
                     className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-300 min-h-[300px] hover:border-blue-500 dark:hover:border-blue-500"
@@ -897,41 +917,56 @@ const App: React.FC = () => {
     </div>
   );
 
-  const TimelineView = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">الخط الزمني للإنجازات</h2>
-            <AnimatedHeader page="timeline" />
-        </div>
-        <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-1/2 -translate-x-1/2 h-full w-0.5 bg-slate-200 dark:bg-slate-700"></div>
-            
-            <div className="space-y-12">
-            {[...studentData.achievements].sort((a,b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()).map((section, index) => (
-                <div key={section.id} className="relative flex items-center" style={{ flexDirection: index % 2 === 0 ? 'row' : 'row-reverse' }}>
-                    <div className="w-[calc(50%-2rem)] px-4">
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                             <div className="flex items-center gap-3 mb-3">
-                                <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
-                                    <SectionIcon sectionType={section.type} className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">{section.title}</h3>
-                             </div>
-                             <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 line-clamp-2">{section.content}</p>
-                             <p className="text-xs text-slate-400 dark:text-slate-500">آخر تحديث: {new Date(section.lastUpdated).toLocaleDateString('ar')}</p>
-                        </div>
-                    </div>
-                    <div className="w-16 h-16 rounded-full bg-blue-500 dark:bg-blue-600 border-4 border-slate-50 dark:border-slate-900 flex items-center justify-center text-white z-10">
-                        <SectionIcon sectionType={section.type} className="w-8 h-8" />
-                    </div>
-                    <div className="w-[calc(50%-2rem)]"></div>
-                </div>
-            ))}
+  const TimelineView = () => {
+    const sortedAchievements = [...studentData.achievements].sort((a,b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+    
+    return (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
+                <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">الخط الزمني للإنجازات</h2>
+                <AnimatedHeader page="timeline" />
             </div>
+            {sortedAchievements.length === 0 ? (
+                <div className="text-center py-16 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                    <TimelineIcon className="w-16 h-16 mx-auto text-slate-400 dark:text-slate-500 mb-4"/>
+                    <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200">لا يوجد إنجازات لعرضها في الخط الزمني.</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2">أضف إنجازًا جديدًا من لوحة التحكم ليظهر هنا.</p>
+                </div>
+            ) : (
+                <div className="relative max-w-5xl mx-auto">
+                    {/* Vertical Line */}
+                    <div className="absolute left-4 top-0 md:left-1/2 md:-translate-x-1/2 w-1 h-full bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+
+                    <div className="relative">
+                        {sortedAchievements.map((section, index) => {
+                             const styles = sectionStyles[section.type] || sectionStyles.goals;
+                             return (
+                                <div key={section.id} className="mb-10">
+                                    {/* The Dot */}
+                                    <div className={`absolute top-1.5 left-4 md:left-1/2 w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-4 ${styles.border} ring-4 ring-white dark:ring-slate-900 -translate-x-1/2 flex items-center justify-center z-10`}>
+                                        <SectionIcon sectionType={section.type} className={`w-4 h-4 ${styles.text}`} />
+                                    </div>
+
+                                    {/* The Card */}
+                                    <div className={`w-[calc(100%-4rem)] ml-12 md:w-[calc(50%-2.5rem)] ${index % 2 === 0 ? 'md:ml-[calc(50%+2.5rem)] md:text-left' : 'md:ml-0 md:mr-auto md:text-right'}`}>
+                                        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 relative">
+                                            {/* Arrow for desktop */}
+                                            <div className={`absolute top-4 h-0 w-0 border-y-8 border-y-transparent hidden md:block ${index % 2 === 0 ? `right-full border-r-8 border-r-white dark:border-r-slate-800` : `left-full border-l-8 border-l-white dark:border-l-slate-800`}`}></div>
+                                            
+                                            <p className={`text-sm font-semibold mb-1 ${styles.text}`}>{sectionTypeTitles[section.type]}</p>
+                                            <h3 className="text-md font-bold text-slate-800 dark:text-white mb-2">{section.title}</h3>
+                                            <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(section.lastUpdated).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
-    </div>
-  );
+    );
+};
 
 
   return (
@@ -1005,6 +1040,41 @@ const App: React.FC = () => {
             onSuccess={handlePasswordSuccess}
             onClose={() => setIsPasswordModalOpen(false)}
         />
+      </Modal>
+      <Modal isOpen={!!viewingCommentsFor} onClose={() => setViewingCommentsFor(null)} title={`التعليقات على: ${viewingCommentsFor?.title || ''}`}>
+          {viewingCommentsFor && (
+              <div className="space-y-4">
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2 -mr-2">
+                      {viewingCommentsFor.comments.length > 0 ? viewingCommentsFor.comments.map(comment => (
+                          <div key={comment.id} className={`p-3 rounded-lg ${comment.teacherName === 'مرشد الذكاء الاصطناعي' ? 'bg-purple-50 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-800' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
+                              <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-left flex items-center gap-1.5 justify-end">
+                                  {comment.teacherName === 'مرشد الذكاء الاصطناعي' && <SparklesIcon className="w-3 h-3 text-purple-500" />}
+                                  <span>{comment.teacherName} - {new Date(comment.timestamp).toLocaleDateString('ar')}</span>
+                              </div>
+                          </div>
+                      )) : <p className="text-sm text-slate-400 italic text-center py-4"> {mode === 'admin' && 'كن أول من يعلق!'}</p>}
+                  </div>
+                  {mode === 'admin' && (
+                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                          <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-3">إضافة تعليق جديد</h4>
+                          <div className="flex gap-2">
+                              <textarea
+                                  placeholder="أضف تعليقًا..."
+                                  value={newComment[viewingCommentsFor.id] || ''}
+                                  onChange={(e) => handleCommentChange(viewingCommentsFor.id, e.target.value)}
+                                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddComment(viewingCommentsFor.id))}
+                                  rows={3}
+                                  className="flex-grow p-2 text-sm border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                              />
+                              <button onClick={() => handleAddComment(viewingCommentsFor.id)} className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors self-start">
+                                  <SendIcon />
+                              </button>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          )}
       </Modal>
     </div>
   );

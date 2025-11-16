@@ -350,16 +350,18 @@ const PresentationWordCloudGame: React.FC<{ content: string }> = ({ content }) =
     const arabicStopWords = useMemo(() => new Set(['من', 'في', 'على', 'الى', 'عن', 'و', 'يا', 'هو', 'هي', 'هذا', 'هذه', 'أن', 'تم', 'قد', 'لا', 'ما', 'مع', 'كل', 'كان', 'يكون', 'لم', 'لن', 'أو', 'إلى', 'عن', 'فيه', 'به', 'له', 'منه']), []);
 
     const words = useMemo(() => {
-        const wordCounts = content
+        const wordCounts = (content || '')
             .split(/[\s،.()]+/)
             .filter(word => word.length > 2 && !arabicStopWords.has(word))
-            .reduce((acc, word) => {
+            // FIX: The reduce function's initial value was untyped, causing its result to be inferred as `{}`,
+            // which in turn caused a type error in the `.sort()` method. Providing a generic type argument
+            // to `reduce` ensures `wordCounts` is correctly typed as `Record<string, number>`.
+            .reduce<Record<string, number>>((acc, word) => {
                 acc[word] = (acc[word] || 0) + 1;
                 return acc;
-            }, {} as Record<string, number>);
+            }, {});
         
         return Object.entries(wordCounts)
-            // FIX: Using array index access for sorting is more robust for type inference than destructuring.
             .sort((a, b) => b[1] - a[1])
             .map(([text, count]) => ({ text, count }));
     }, [content, arabicStopWords]);

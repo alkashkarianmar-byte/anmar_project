@@ -2,7 +2,7 @@ import React from 'react';
 
 // Animation for the Home page
 const HomeAnimation = () => (
-    <svg viewBox="0 0 200 100" className="w-48 h-24">
+    <svg viewBox="0 0 200 100" className="w-36 h-20 sm:w-48 sm:h-24">
         <style>{`
             .book-page { animation: flip 2s ease-in-out infinite alternate; transform-origin: 0 100%; }
             @keyframes flip { from { transform: rotateX(0deg); } to { transform: rotateX(-180deg); } }
@@ -25,7 +25,7 @@ const HomeAnimation = () => (
 
 // Animation for the Dashboard
 const DashboardAnimation = () => (
-    <svg viewBox="0 0 200 100" className="w-48 h-24">
+    <svg viewBox="0 0 200 100" className="w-36 h-20 sm:w-48 sm:h-24">
          <style>{`
             .stair { animation: rise 2s ease-out forwards; opacity: 0; }
             @keyframes rise { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -44,7 +44,7 @@ const DashboardAnimation = () => (
 
 // Animation for Skills
 const SkillsAnimation = () => (
-    <svg viewBox="0 0 200 100" className="w-48 h-24">
+    <svg viewBox="0 0 200 100" className="w-36 h-20 sm:w-48 sm:h-24">
         <style>{`
             .orbit { animation: orbit 6s linear infinite; transform-origin: 100px 55px; }
             @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -70,7 +70,7 @@ const SkillsAnimation = () => (
 
 // Animation for Timeline
 const TimelineAnimation = () => (
-    <svg viewBox="0 0 200 100" className="w-48 h-24">
+    <svg viewBox="0 0 200 100" className="w-36 h-20 sm:w-48 sm:h-24">
          <style>{`
             .timeline-path { stroke-dasharray: 300; stroke-dashoffset: 300; animation: draw 4s ease-out forwards; }
             @keyframes draw { to { stroke-dashoffset: 0; } }
@@ -87,7 +87,7 @@ const TimelineAnimation = () => (
 
 // Animation for Subjects
 const SubjectsAnimation = () => (
-    <svg viewBox="0 0 200 100" className="w-48 h-24">
+    <svg viewBox="0 0 200 100" className="w-36 h-20 sm:w-48 sm:h-24">
         <style>{`
             .book-stack-book { animation: stack 2s ease-out forwards; opacity: 0; transform: translateX(-20px); }
             @keyframes stack { to { opacity: 1; transform: translateX(0); } }
