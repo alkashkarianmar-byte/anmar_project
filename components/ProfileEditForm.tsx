@@ -5,7 +5,7 @@ import { UploadIcon } from './icons';
 
 interface ProfileEditFormProps {
   student: Pick<StudentData, 'name' | 'bio' | 'profileImageUrl'>;
-  onSave: (updatedData: { name: string; bio: string; profileImageUrl: string }) => void;
+  onSave: (updatedData: { name: string; bio: string; }, newImageFile: File | null) => void;
   onClose: () => void;
 }
 
@@ -13,10 +13,12 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
   const [name, setName] = useState(student.name);
   const [bio, setBio] = useState(student.bio);
   const [imagePreview, setImagePreview] = useState<string>(student.profileImageUrl);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -27,11 +29,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onCl
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      name,
-      bio,
-      profileImageUrl: imagePreview,
-    });
+    onSave({ name, bio }, imageFile);
   };
 
   return (

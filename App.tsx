@@ -1,40 +1,16 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AchievementSection, StudentData, TeacherComment, UploadedFile, SectionId, Skill, Subject } from './types';
-import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, ImageFileIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, LoginIcon, BookIcon, MenuIcon, CloseIcon } from './components/icons';
+import { initialData } from './data';
+import { db, storage } from './firebase';
+import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, BookIcon, MenuIcon, CloseIcon } from './components/icons';
 import Modal from './components/Modal';
 import AchievementGame from './components/AchievementGame';
 import ProfileEditForm from './components/ProfileEditForm';
 import PasswordModalContent from './components/PasswordModalContent';
 import { GoogleGenAI } from "@google/genai";
 import AnimatedHeader from './components/AnimatedHeader';
-
-const initialData: StudentData = {
-  name: 'أنمار أحمد الكاشقري',
-  grade: 'الصف الأول المتوسط',
-  date: '١٢ مارس ٢٠١٤',
-  school: 'مدارس الأندلس الأهلية',
-  location: 'جدة، المملكة العربية السعودية',
-  profileImageUrl: 'https://picsum.photos/id/1062/150/150',
-  bio: 'أسعى دائمًا للتعلم والتطور، وأتمنى أن يكون هذا الموقع مصدر إلهام للجميع.',
-  achievements: [
-    { id: 'initial-goals', type: 'goals', title: 'تحديد الأهداف', content: 'هدفي هذا العام هو تحسين مهاراتي في الرياضيات واللغة الإنجليزية، والمشاركة في مسابقة العلوم المدرسية.', file: undefined, comments: [], lastUpdated: new Date('2014-09-05T10:00:00Z').toISOString() },
-    { id: 'initial-planning', type: 'planning', title: 'تخطيط العمل', content: 'قمت بإنشاء جدول زمني أسبوعي يتضمن ساعات محددة للمذاكرة، وحل الواجبات، والتحضير لمسابقة العلوم.', file: undefined, comments: [], lastUpdated: new Date('2014-09-15T11:30:00Z').toISOString() },
-    { id: 'initial-progress', type: 'progress', title: 'تتبع التقدم', content: 'أقوم بمراجعة تقدمي كل أسبوع. لقد لاحظت تحسنًا في درجاتي في الاختبارات القصيرة للرياضيات.', file: undefined, comments: [], lastUpdated: new Date('2014-10-01T15:00:00Z').toISOString() },
-    { id: 'initial-learning', type: 'learning', title: 'التعلم من التجارب', content: 'واجهت صعوبة في فهم بعض المفاهيم الهندسية، ولكن بعد طلب المساعدة من المعلم واستخدام مصادر تعليمية عبر الإنترنت، تمكنت من فهمها بشكل أفضل.', file: undefined, comments: [], lastUpdated: new Date('2014-10-20T16:45:00Z').toISOString() },
-    { id: 'initial-presentation', type: 'presentation', title: 'عرض الإنجازات', content: 'حصلت على المركز الثاني في مسابقة العلوم المدرسية عن مشروعي حول الطاقة المتجددة.', file: {name: 'شهادة تقدير.jpg', url: 'https://picsum.photos/id/239/400/300', type: 'image/jpeg'}, comments: [
-      { id: '1', teacherName: 'أ. محمد', comment: 'عمل رائع يا أنمار! مشروعك كان مميزًا جدًا.', timestamp: new Date('2014-11-05T09:00:00Z').toISOString() }
-    ], lastUpdated: new Date('2014-11-05T09:00:00Z').toISOString()},
-  ],
-  skills: [
-    { id: 'default-skill-1', name: 'البرمجة', level: 3 },
-    { id: 'default-skill-2', name: 'البادل', level: 3 },
-  ],
-  subjects: [
-      { id: 'subject-1', name: 'الرياضيات', reason: 'أحب حل المسائل الصعبة واكتشاف الأنماط في الأرقام والأشكال.' },
-      { id: 'subject-2', name: 'العلوم', reason: 'أستمتع بإجراء التجارب في المختبر وتعلم كيف يعمل العالم من حولنا.' },
-      { id: 'subject-3', name: 'اللغة الإنجليزية', reason: 'أحب تعلم كلمات جديدة والتحدث مع أشخاص من ثقافات مختلفة.' },
-  ]
-};
 
 const sectionTypeTitles: { [key in SectionId]: string } = {
   goals: 'تحديد الأهداف',
@@ -52,50 +28,6 @@ const sectionStyles: { [key in SectionId]: { border: string; bg: string; text: s
   presentation: { border: 'border-red-500', bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-600 dark:text-red-400' },
 };
 
-
-const localStorageKey = 'studentPortfolioData';
-
-const loadStudentData = (): StudentData => {
-    try {
-        const savedDataString = window.localStorage.getItem(localStorageKey);
-        if (savedDataString) {
-            const savedData = JSON.parse(savedDataString);
-
-            // Ensure savedData is a valid object before proceeding
-            if (typeof savedData !== 'object' || savedData === null || Array.isArray(savedData)) {
-                throw new Error("Saved data is not a plain object.");
-            }
-
-            // Safely merge arrays, falling back to initial data if the saved data is not an array.
-            const achievements = Array.isArray(savedData.achievements)
-                ? savedData.achievements.map((ach: any) => ({ // also ensure each achievement is well-formed
-                    ...ach,
-                    comments: Array.isArray(ach.comments) ? ach.comments : [],
-                  }))
-                : initialData.achievements;
-
-            const skills = Array.isArray(savedData.skills) ? savedData.skills : initialData.skills;
-            const subjects = Array.isArray(savedData.subjects) ? savedData.subjects : initialData.subjects;
-
-            // Reconstruct the data object, starting with defaults, overwriting with saved scalar values,
-            // and then adding the sanitized arrays.
-            return {
-                ...initialData,
-                ...savedData,
-                achievements,
-                skills,
-                subjects,
-            };
-        }
-    } catch (error) {
-        console.error("Failed to load or parse data from localStorage. Resetting to initial data to prevent app corruption.", error);
-        // If parsing fails or data is invalid, the saved data is likely corrupted. Remove it.
-        window.localStorage.removeItem(localStorageKey);
-    }
-    // Return initial data if nothing is saved or if there was an error
-    return initialData;
-};
-
 const SectionIcon: React.FC<{ sectionType: SectionId, className?: string }> = ({ sectionType, className }) => {
   switch (sectionType) {
     case 'goals': return <GoalIcon className={className} />;
@@ -107,9 +39,10 @@ const SectionIcon: React.FC<{ sectionType: SectionId, className?: string }> = ({
   }
 };
 
+// --- Forms ---
 const AchievementForm: React.FC<{
   section: AchievementSection;
-  onSave: (updatedSection: AchievementSection) => void;
+  onSave: (updatedSection: AchievementSection, newFile: File | null, fileRemoved: boolean) => void;
   onClose: () => void;
 }> = ({ section, onSave, onClose }) => {
   const [title, setTitle] = useState(section.title);
@@ -117,7 +50,6 @@ const AchievementForm: React.FC<{
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<{url: string; name: string; type: string;} | null>(section.file ? section.file : null);
   const [fileRemoved, setFileRemoved] = useState(false);
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -136,35 +68,14 @@ const AchievementForm: React.FC<{
     setFile(null);
     setFilePreview(null);
     setFileRemoved(true);
-    // Also reset the file input visually
     const fileInput = document.getElementById('file') as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedSection = { ...section, title, content, lastUpdated: new Date().toISOString() };
-    
-    if (file) { // A new file was uploaded
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-        updatedSection.file = {
-            name: file.name,
-            url: dataUrl,
-            type: file.type,
-        };
-    } else if (fileRemoved) { // File was explicitly removed
-        updatedSection.file = undefined;
-    } else { // No change to file, keep original
-        updatedSection.file = section.file;
-    }
-
-    onSave(updatedSection);
+    const updatedSectionData = { ...section, title, content, lastUpdated: new Date().toISOString() };
+    onSave(updatedSectionData, file, fileRemoved);
     onClose();
   };
 
@@ -172,50 +83,24 @@ const AchievementForm: React.FC<{
     <form onSubmit={handleSubmit} className="space-y-4">
        <div>
         <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">العنوان</label>
-        <input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+        <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
       </div>
       <div>
         <label htmlFor="content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الوصف</label>
-        <textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={5}
-          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+        <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} rows={5} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
       </div>
       <div>
         <label htmlFor="file" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">رفع ملف (صورة أو مستند)</label>
         {filePreview && (
           <div className="flex items-center justify-between gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg my-2 bg-slate-50 dark:bg-slate-700/50">
             <div className="flex items-center gap-3 overflow-hidden">
-              {filePreview.type.startsWith('image/') ?
-                <img src={filePreview.url} alt="preview" className="w-12 h-12 object-cover rounded-md" /> :
-                <DocumentFileIcon className="w-10 h-10 text-slate-500" />
-              }
+              {filePreview.type.startsWith('image/') ? <img src={filePreview.url} alt="preview" className="w-12 h-12 object-cover rounded-md" /> : <DocumentFileIcon className="w-10 h-10 text-slate-500" />}
               <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{filePreview.name}</p>
             </div>
-            <button 
-              type="button" 
-              onClick={handleRemoveFile}
-              className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
-              aria-label="Remove file"
-            >
-              <TrashIcon />
-            </button>
+            <button type="button" onClick={handleRemoveFile} className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0" aria-label="Remove file"><TrashIcon /></button>
           </div>
         )}
-        <input
-          type="file"
-          id="file"
-          onChange={handleFileChange}
-          className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900"
-        />
+        <input type="file" id="file" onChange={handleFileChange} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900" />
       </div>
       <div className="flex justify-end gap-3 pt-4">
         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
@@ -226,7 +111,7 @@ const AchievementForm: React.FC<{
 };
 
 const AchievementAddForm: React.FC<{
-  onSave: (newSection: Omit<AchievementSection, 'id' | 'lastUpdated' | 'comments'>) => void;
+  onSave: (newSection: Omit<AchievementSection, 'id' | 'lastUpdated' | 'comments' | 'file'>, file: File | null) => void;
   onClose: () => void;
 }> = ({ onSave, onClose }) => {
   const [title, setTitle] = useState('');
@@ -234,38 +119,10 @@ const AchievementAddForm: React.FC<{
   const [type, setType] = useState<SectionId>('goals');
   const [file, setFile] = useState<File | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-        alert("الرجاء إدخال العنوان والوصف.");
-        return;
-    }
-
-    const newSection: Omit<AchievementSection, 'id' | 'lastUpdated' | 'comments'> = {
-        title,
-        content,
-        type,
-    };
-    if (file) {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      newSection.file = {
-        name: file.name,
-        url: dataUrl,
-        type: file.type,
-      };
-    }
-    onSave(newSection);
+    if (!title.trim() || !content.trim()) { alert("الرجاء إدخال العنوان والوصف."); return; }
+    onSave({ title, content, type }, file);
     onClose();
   };
 
@@ -273,46 +130,21 @@ const AchievementAddForm: React.FC<{
     <form onSubmit={handleSubmit} className="space-y-4">
        <div>
         <label htmlFor="type" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">فئة الإنجاز</label>
-        <select
-          id="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as SectionId)}
-          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-            {Object.entries(sectionTypeTitles).map(([key, value]) => (
-                <option key={key} value={key}>{value}</option>
-            ))}
+        <select id="type" value={type} onChange={(e) => setType(e.target.value as SectionId)} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            {Object.entries(sectionTypeTitles).map(([key, value]) => (<option key={key} value={key}>{value}</option>))}
         </select>
       </div>
        <div>
-        <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">عنوان الإنجاز</label>
-        <input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="مثال: الفوز في مسابقة الرياضيات"
-          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+        <label htmlFor="title-add" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">عنوان الإنجاز</label>
+        <input id="title-add" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: الفوز في مسابقة الرياضيات" className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
       </div>
       <div>
-        <label htmlFor="content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الوصف</label>
-        <textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={5}
-          placeholder="اشرح تفاصيل هذا الإنجاز..."
-          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+        <label htmlFor="content-add" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الوصف</label>
+        <textarea id="content-add" value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder="اشرح تفاصيل هذا الإنجاز..." className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
       </div>
       <div>
         <label htmlFor="file-add" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">رفع ملف (اختياري)</label>
-        <input
-          type="file"
-          id="file-add"
-          onChange={handleFileChange}
-          className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900"
-        />
+        <input type="file" id="file-add" onChange={(e) => e.target.files && setFile(e.target.files[0])} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:hover:file:bg-blue-900" />
       </div>
       <div className="flex justify-end gap-3 pt-4">
         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
@@ -321,119 +153,18 @@ const AchievementAddForm: React.FC<{
     </form>
   );
 };
-
-const SkillAddForm: React.FC<{
-  onSave: (newSkill: Omit<Skill, 'id'>) => void;
-  onClose: () => void;
-}> = ({ onSave, onClose }) => {
-    const [name, setName] = useState('');
-    const [level, setLevel] = useState<Skill['level']>(3);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name.trim()) {
-            alert("الرجاء إدخال اسم المهارة.");
-            return;
-        }
-        onSave({ name, level });
-        onClose();
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label htmlFor="skill-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">اسم المهارة</label>
-                <input
-                    id="skill-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="مثال: البرمجة"
-                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">مستوى الإتقان</label>
-                <div className="flex justify-center gap-2" dir="ltr">
-                    {[1, 2, 3, 4, 5].map(star => (
-                        <button
-                            type="button"
-                            key={star}
-                            onClick={() => setLevel(star as Skill['level'])}
-                            className="text-4xl transition-transform hover:scale-125"
-                            aria-label={`Set level to ${star}`}
-                        >
-                            {star <= level ? <span className="text-yellow-400">★</span> : <span className="text-slate-300 dark:text-slate-600">☆</span>}
-                        </button>
-                    ))}
-                </div>
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">إضافة المهارة</button>
-            </div>
-        </form>
-    );
-};
-
-const SubjectAddForm: React.FC<{
-  onSave: (newSubject: Omit<Subject, 'id'>) => void;
-  onClose: () => void;
-}> = ({ onSave, onClose }) => {
-    const [name, setName] = useState('');
-    const [reason, setReason] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name.trim() || !reason.trim()) {
-            alert("الرجاء إدخال اسم المادة وسبب تفضيلك لها.");
-            return;
-        }
-        onSave({ name, reason });
-        onClose();
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label htmlFor="subject-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">اسم المادة</label>
-                <input
-                    id="subject-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="مثال: التاريخ"
-                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-            </div>
-             <div>
-                <label htmlFor="subject-reason" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">لماذا أحب هذه المادة؟</label>
-                <textarea
-                    id="subject-reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={4}
-                    placeholder="اشرح لماذا تستمتع بدراسة هذه المادة..."
-                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">إضافة المادة</button>
-            </div>
-        </form>
-    );
-};
+// --- End Forms ---
 
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [view, setView] = useState<'home' | 'dashboard' | 'timeline' | 'skills' | 'subjects'>('home');
-  const [studentData, setStudentData] = useState<StudentData>(loadStudentData);
+  const [studentData, setStudentData] = useState<StudentData | null>(null);
+  const [loading, setLoading] = useState(true);
   
   const [editingSection, setEditingSection] = useState<AchievementSection | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
-  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [playingGame, setPlayingGame] = useState<AchievementSection | null>(null);
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [isAiLoading, setIsAiLoading] = useState<{ [key: string]: boolean }>({});
@@ -443,197 +174,219 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewingCommentsFor, setViewingCommentsFor] = useState<AchievementSection | null>(null);
  
+  // Fetch data from Firestore on initial load
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    const fetchData = async () => {
+        // FIX: Using Firebase v8 compat syntax
+        const docRef = db.collection('studentData').doc('main');
+        const docSnap = await docRef.get();
+
+        if (docSnap.exists) {
+            setStudentData(docSnap.data() as StudentData);
+        } else {
+            console.log("No such document! Creating initial data.");
+            // FIX: Using Firebase v8 compat syntax
+            await docRef.set(initialData);
+            setStudentData(initialData);
+        }
+        setLoading(false);
+    };
+
+    fetchData().catch(error => {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [theme]);
+  
+  const handleAdminLogin = () => setIsPasswordModalOpen(true);
+  const handleAdminLogout = () => setMode('visitor');
+  const handlePasswordSuccess = () => { setMode('admin'); setIsPasswordModalOpen(false); };
+  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
-  useEffect(() => {
+  const uploadFile = async (file: File, path: string): Promise<UploadedFile> => {
+    // FIX: Using Firebase v8 compat syntax for Storage
+    const storageRef = storage.ref(path);
+    await storageRef.put(file);
+    const downloadURL = await storageRef.getDownloadURL();
+    return { name: file.name, url: downloadURL, type: file.type };
+  };
+
+  const deleteFileByUrl = async (fileUrl: string) => {
+      try {
+          // FIX: Using Firebase v8 compat syntax for Storage
+          const fileRef = storage.refFromURL(fileUrl);
+          await fileRef.delete();
+      } catch (error) {
+          console.error("Could not delete file from storage. It might have been already deleted or the URL is incorrect.", error);
+      }
+  };
+  
+  const handleUpdateSection = async (updatedSection: AchievementSection, newFile: File | null, fileRemoved: boolean) => {
+    if (!studentData) return;
     try {
-        window.localStorage.setItem(localStorageKey, JSON.stringify(studentData));
-    } catch (error) {
-        console.error("Could not save data to localStorage", error);
-    }
-  }, [studentData]);
-  
-  const handleAdminLogin = () => {
-    setIsPasswordModalOpen(true);
-  };
-  
-  const handleAdminLogout = () => {
-    setMode('visitor');
-  }
+        const docRef = db.collection('studentData').doc('main');
+        let finalSection = { ...updatedSection };
 
-  const handlePasswordSuccess = () => {
-      setMode('admin');
-      setIsPasswordModalOpen(false);
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
-
-  const handleUpdateSection = (updatedSection: AchievementSection) => {
-    setStudentData(prevData => ({
-      ...prevData,
-      achievements: prevData.achievements.map(s => s.id === updatedSection.id ? updatedSection : s)
-    }));
-  };
-  
-  const handleDeleteAchievement = (sectionId: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الإنجاز؟ سيتم حذفه نهائيًا.')) {
-        setStudentData(prev => ({
-            ...prev,
-            achievements: prev.achievements.filter(s => s.id !== sectionId)
-        }));
-    }
-  };
-
-  const handleDeleteSkill = (skillId: string) => {
-      if (window.confirm('هل أنت متأكد من حذف هذه المهارة؟')) {
-          setStudentData(prev => ({
-              ...prev,
-              skills: prev.skills.filter(s => s.id !== skillId)
-          }));
-      }
-  };
-
-  const handleDeleteSubject = (subjectId: string) => {
-      if (window.confirm('هل أنت متأكد من حذف هذه المادة؟')) {
-          setStudentData(prev => ({
-              ...prev,
-              subjects: prev.subjects.filter(s => s.id !== subjectId)
-          }));
-      }
-  };
-
-  const handleSaveNewAchievement = (newSectionData: Omit<AchievementSection, 'id' | 'lastUpdated' | 'comments'>) => {
-    const newAchievement: AchievementSection = {
-      ...newSectionData,
-      id: `custom-${Date.now()}`,
-      lastUpdated: new Date().toISOString(),
-      comments: [],
-    };
-    setStudentData(prev => ({...prev, achievements: [...prev.achievements, newAchievement]}));
-  };
-  
-    const handleSaveNewSkill = (newSkillData: Omit<Skill, 'id'>) => {
-        const newSkill: Skill = {
-            ...newSkillData,
-            id: `skill-${Date.now()}`,
-        };
-        setStudentData(prev => ({ ...prev, skills: [...prev.skills, newSkill] }));
-    };
-
-    const handleSaveNewSubject = (newSubjectData: Omit<Subject, 'id'>) => {
-        const newSubject: Subject = {
-            ...newSubjectData,
-            id: `subject-${Date.now()}`,
-        };
-        setStudentData(prev => ({ ...prev, subjects: [...prev.subjects, newSubject] }));
-    };
-
-  const handleAddComment = (sectionId: string) => {
-    const commentText = newComment[sectionId]?.trim();
-    if (!commentText || mode !== 'admin') return;
-    
-    const comment: TeacherComment = {
-        id: new Date().toISOString(),
-        teacherName: 'أ. معلم',
-        comment: commentText,
-        timestamp: new Date().toISOString(),
-    };
-
-    const updateAndRefreshComments = (prevData: StudentData) => {
-        const updatedAchievements = prevData.achievements.map(s => {
-            if (s.id === sectionId) {
-                return { ...s, comments: [...s.comments, comment] };
-            }
-            return s;
-        });
-        
-        // Update the state for the modal as well
-        if (viewingCommentsFor && viewingCommentsFor.id === sectionId) {
-            setViewingCommentsFor(prev => prev ? {...prev, comments: [...prev.comments, comment]} : null);
+        // Handle file deletion
+        const oldFile = studentData.achievements.find(s => s.id === updatedSection.id)?.file;
+        if (oldFile && (fileRemoved || newFile)) {
+            await deleteFileByUrl(oldFile.url);
         }
 
-        return {
-            ...prevData,
-            achievements: updatedAchievements
+        // Handle file upload
+        if (newFile) {
+            finalSection.file = await uploadFile(newFile, `achievements/${Date.now()}-${newFile.name}`);
+        } else if (fileRemoved) {
+            delete (finalSection as Partial<AchievementSection>).file;
+        }
+
+        const updatedAchievements = studentData.achievements.map(s => s.id === finalSection.id ? finalSection : s);
+        // FIX: Using Firebase v8 compat syntax
+        await docRef.update({ achievements: updatedAchievements });
+        setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+    } catch (error) { console.error("Error updating section:", error); }
+  };
+  
+  const handleDeleteAchievement = async (sectionId: string) => {
+    if (!studentData || !window.confirm('هل أنت متأكد من حذف هذا الإنجاز؟ سيتم حذفه نهائيًا.')) return;
+    try {
+        const achievementToDelete = studentData.achievements.find(s => s.id === sectionId);
+        if (achievementToDelete?.file) {
+            await deleteFileByUrl(achievementToDelete.file.url);
+        }
+        
+        const updatedAchievements = studentData.achievements.filter(s => s.id !== sectionId);
+        // FIX: Using Firebase v8 compat syntax
+        await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+        setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+    } catch (error) { console.error("Error deleting achievement:", error); }
+  };
+  
+  const handleSaveNewAchievement = async (newSectionData: Omit<AchievementSection, 'id'|'lastUpdated'|'comments'|'file'>, file: File | null) => {
+    if (!studentData) return;
+    try {
+        
+        const newAchievement: AchievementSection = {
+            ...newSectionData,
+            id: `custom-${Date.now()}`,
+            lastUpdated: new Date().toISOString(),
+            comments: [],
         };
-    };
+        
+        if (file) {
+           newAchievement.file = await uploadFile(file, `achievements/${Date.now()}-${file.name}`);
+        }
 
-    setStudentData(updateAndRefreshComments);
-    setNewComment(prev => ({...prev, [sectionId]: ''}));
+        const updatedAchievements = [...studentData.achievements, newAchievement];
+        // FIX: Using Firebase v8 compat syntax
+        await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+        setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+        setIsAddModalOpen(false);
+    } catch (error) { console.error("Error saving new achievement:", error); }
   };
 
-  const handleCommentChange = (sectionId: string, text: string) => {
-    setNewComment(prev => ({...prev, [sectionId]: text}));
+  const handleProfileUpdate = async (updatedData: { name: string; bio: string; }, newImageFile: File | null) => {
+    if (!studentData) return;
+    try {
+        let profileImageUrl = studentData.profileImageUrl;
+        if (newImageFile) {
+            // Delete old profile picture if it's a firebase storage URL
+            if (profileImageUrl.includes('firebasestorage')) {
+                await deleteFileByUrl(profileImageUrl);
+            }
+            const newUrlData = await uploadFile(newImageFile, `profile/${Date.now()}-${newImageFile.name}`);
+            profileImageUrl = newUrlData.url;
+        }
+
+        const finalData = { ...updatedData, profileImageUrl };
+        // FIX: Using Firebase v8 compat syntax
+        await db.collection('studentData').doc('main').update(finalData);
+        setStudentData(prev => prev ? { ...prev, ...finalData } : null);
+        setIsProfileModalOpen(false);
+    } catch (error) { console.error("Error updating profile:", error); }
   };
 
+  const handleAddComment = async (sectionId: string) => {
+      const commentText = newComment[sectionId]?.trim();
+      if (!commentText || mode !== 'admin' || !studentData) return;
+
+      const comment: TeacherComment = {
+          id: new Date().toISOString(),
+          teacherName: 'أ. معلم',
+          comment: commentText,
+          timestamp: new Date().toISOString(),
+      };
+      
+      const updatedAchievements = studentData.achievements.map(s => 
+          s.id === sectionId ? { ...s, comments: [...s.comments, comment] } : s
+      );
+      
+      // FIX: Using Firebase v8 compat syntax
+      await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+      
+      if (viewingCommentsFor?.id === sectionId) {
+          setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, comment] } : null);
+      }
+      setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+      setNewComment(prev => ({ ...prev, [sectionId]: '' }));
+  };
+  
   const handleGetAiFeedback = async (section: AchievementSection) => {
-    if (mode !== 'admin') return;
+    if (mode !== 'admin' || !studentData) return;
     setIsAiLoading(prev => ({...prev, [section.id]: true}));
     try {
         const ai = new GoogleGenAI({apiKey: process.env.API_KEY as string});
-        const prompt = `أنت مرشد تعليمي داعم. قم بمراجعة النص التالي الذي كتبه طالب في المرحلة المتوسطة حول إنجازاته. قدم ملاحظات بناءة وإيجابية باللغة العربية في فقرة واحدة. اجعل ملاحظاتك مشجعة وساعد الطالب على التفكير في كيفية تحسين ما كتبه. النص هو: "${section.content}"`;
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-
-        const aiComment: TeacherComment = {
-            id: new Date().toISOString(),
-            teacherName: 'مرشد الذكاء الاصطناعي',
-            comment: response.text,
-            timestamp: new Date().toISOString(),
-        };
-
-        setStudentData(prevData => ({
-            ...prevData,
-            achievements: prevData.achievements.map(s => 
-                s.id === section.id ? { ...s, comments: [...s.comments, aiComment] } : s
-            )
-        }));
-
-    } catch (error) {
-        console.error("Error getting AI feedback:", error);
-        alert("حدث خطأ أثناء الحصول على الملاحظات من الذكاء الاصطناعي. الرجاء المحاولة مرة أخرى.");
-    } finally {
-        setIsAiLoading(prev => ({...prev, [section.id]: false}));
-    }
+        const prompt = `أنت مرشد تعليمي داعم. قدم ملاحظات بناءة وإيجابية حول هذا الإنجاز لطالب في المرحلة المتوسطة. كن مشجعًا وقدم اقتراحًا واحدًا للخطوة التالية. اجعل ردك قصيرًا وفي فقرة واحدة. الإنجاز هو: "${section.title} - ${section.content}"`; 
+        
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        
+        const aiCommentText = response.text;
+        
+        const aiComment: TeacherComment = { id: new Date().toISOString(), teacherName: 'مرشد الذكاء الاصطناعي', comment: aiCommentText, timestamp: new Date().toISOString() };
+        
+        const updatedAchievements = studentData.achievements.map(s => s.id === section.id ? { ...s, comments: [...s.comments, aiComment] } : s);
+        // FIX: Using Firebase v8 compat syntax
+        await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+        if (viewingCommentsFor?.id === section.id) {
+            setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, aiComment] } : null);
+        }
+        setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+    } catch (error) { console.error("Error getting AI feedback:", error); } 
+    finally { setIsAiLoading(prev => ({...prev, [section.id]: false})); }
   };
+
+  const createCrudHandlers = <T extends {id: string}>(dataType: 'skills' | 'subjects') => {
+      return {
+          handleSave: async (newItemData: Omit<T, 'id'>) => {
+              if (!studentData) return;
+              const newItem = { ...newItemData, id: `${dataType}-${Date.now()}` } as T;
+              const updatedData = [...studentData[dataType], newItem];
+              // FIX: Using Firebase v8 compat syntax
+              await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
+              setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
+          },
+          handleDelete: async (itemId: string) => {
+              if (!studentData || !window.confirm(`هل أنت متأكد من الحذف؟`)) return;
+              const updatedData = studentData[dataType].filter(item => item.id !== itemId);
+              // FIX: Using Firebase v8 compat syntax
+              await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
+              setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
+          }
+      }
+  };
+  const skillHandlers = createCrudHandlers<Skill>('skills');
+  const subjectHandlers = createCrudHandlers<Subject>('subjects');
+
+  // --- Render methods ---
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!studentData) return <div className="min-h-screen flex items-center justify-center"><p>لم يتم العثور على البيانات. الرجاء المحاولة مرة أخرى.</p></div>;
   
-  const handleProfileUpdate = (updatedData: { name: string; bio: string; profileImageUrl: string }) => {
-    setStudentData(prev => ({...prev, ...updatedData}));
-  };
-
-  const renderFilePreview = (file: UploadedFile) => {
-    const isImage = file.type.startsWith('image/');
-    return (
-        <a href={file.url} target="_blank" rel="noopener noreferrer" className="mt-4 block group">
-            <div className="flex items-center gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                {isImage ? (
-                    <img src={file.url} alt={file.name} className="w-16 h-16 object-cover rounded-md" />
-                ) : (
-                    <div className="flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-md">
-                        {file.type.includes('pdf') ? <DocumentFileIcon className="w-8 h-8 text-red-500" /> : <DocumentFileIcon className="w-8 h-8 text-blue-500" />}
-                    </div>
-                )}
-                <div className="flex-1">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">{file.name}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{file.type}</p>
-                </div>
-            </div>
-        </a>
-    );
-  };
-
-
-  const Header = useCallback(() => (
+  const Header = () => (
     <header className="sticky top-0 z-40 w-full backdrop-blur flex-none transition-colors duration-500 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
@@ -653,15 +406,7 @@ const App: React.FC = () => {
                         <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                             {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
                         </button>
-                        {mode === 'admin' ? (
-                            <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير">
-                                <UnlockIcon className="w-5 h-5 text-green-500" />
-                            </button>
-                        ) : (
-                             <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير">
-                                <LockIcon className="w-5 h-5 text-slate-500" />
-                            </button>
-                        )}
+                        {mode === 'admin' ? <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير"><UnlockIcon className="w-5 h-5 text-green-500" /></button> : <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير"><LockIcon className="w-5 h-5 text-slate-500" /></button>}
                     </div>
                     <button onClick={() => setIsMobileMenuOpen(prev => !prev)} className="md:hidden p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-2">
                         {isMobileMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
@@ -670,7 +415,7 @@ const App: React.FC = () => {
             </div>
         </div>
         {isMobileMenuOpen && (
-            <nav className="md:hidden flex flex-col p-4 gap-3 border-t border-slate-200 dark:border-slate-700">
+             <nav className="md:hidden flex flex-col p-4 gap-3 border-t border-slate-200 dark:border-slate-700">
                 <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
                 <button onClick={() => { setView('dashboard'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
                 <button onClick={() => { setView('skills'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
@@ -679,300 +424,349 @@ const App: React.FC = () => {
             </nav>
         )}
     </header>
-  ), [theme, view, mode, isMobileMenuOpen]);
-  
+  );
+
   const HomeView = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center animate-fade-in">
-        <div className="relative inline-block">
-            <img src={studentData.profileImageUrl} alt="صورة الطالب" className="w-40 h-40 rounded-full mx-auto mb-6 shadow-lg border-4 border-white dark:border-slate-800 object-cover"/>
-            <span className="absolute bottom-4 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">متصل</span>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-1">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center sticky top-24">
+                    <img src={studentData.profileImageUrl} alt={studentData.name} className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-slate-200 dark:border-slate-700 object-cover" />
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{studentData.name}</h2>
+                    <p className="text-slate-500 dark:text-slate-400">{studentData.grade}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{studentData.school}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{studentData.location}</p>
+                    <p className="mt-4 text-slate-600 dark:text-slate-300 text-sm">{studentData.bio}</p>
+                    {mode === 'admin' && (
+                        <button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors text-sm font-semibold">
+                            <EditIcon />
+                            تعديل الملف الشخصي
+                        </button>
+                    )}
+                </div>
+            </div>
+            <div className="md:col-span-2">
+                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">أهلاً بك في ملف إنجازاتي</h2>
+                            <p className="text-slate-600 dark:text-slate-300 mt-2">هنا أوثق رحلتي التعليمية، إنجازاتي، ومهاراتي التي أكتسبها.</p>
+                        </div>
+                        <AnimatedHeader page="home" />
+                    </div>
+                </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <button onClick={() => setView('dashboard')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                        <GoalIcon className="mx-auto w-8 h-8 text-blue-500 mb-2" />
+                        <h3 className="font-semibold">الإنجازات</h3>
+                    </button>
+                    <button onClick={() => setView('skills')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                        <SkillsIcon className="mx-auto w-8 h-8 text-purple-500 mb-2" />
+                        <h3 className="font-semibold">مهاراتي</h3>
+                    </button>
+                    <button onClick={() => setView('subjects')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                        <BookIcon className="mx-auto w-8 h-8 text-green-500 mb-2" />
+                        <h3 className="font-semibold">موادي المفضلة</h3>
+                    </button>
+                </div>
+            </div>
         </div>
-        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-2">{studentData.name}</h1>
-        <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">{studentData.grade}</p>
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8">
-            <p className="flex-1 text-lg text-slate-700 dark:text-slate-400 leading-relaxed text-center md:text-right">
-                مرحباً بكم في موقع إنجازاتي الشخصي. {studentData.bio}
-            </p>
-            <AnimatedHeader page="home" />
-        </div>
-        <button 
-            onClick={() => setView('dashboard')} 
-            className="mt-12 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
-        >
-            اكتشف إنجازاتي
-        </button>
-         <style>{`
-            @keyframes fade-in {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
-        `}</style>
     </div>
   );
 
-  const Dashboard = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">لوحة الإنجازات</h2>
-            <AnimatedHeader page="dashboard" />
+  const AchievementCard: React.FC<{ achievement: AchievementSection }> = ({ achievement }) => (
+    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div className="p-4">
+            <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">{achievement.content}</p>
+            {achievement.file && (
+                <a href={achievement.file.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    {achievement.file.type.startsWith('image/') ? <UploadIcon className="w-4 h-4" /> : <DocumentFileIcon className="w-4 h-4" />}
+                    {achievement.file.name}
+                </a>
+            )}
+             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">آخر تحديث: {new Date(achievement.lastUpdated).toLocaleDateString('ar-SA')}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg mb-10 border border-slate-200 dark:border-slate-700">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">معلومات الطالب</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-slate-700 dark:text-slate-300">
-                    <div><strong className="block text-slate-500 dark:text-slate-400">الاسم:</strong> {studentData.name}</div>
-                    <div><strong className="block text-slate-500 dark:text-slate-400">الصف:</strong> {studentData.grade}</div>
-                    <div><strong className="block text-slate-500 dark:text-slate-400">المدرسة:</strong> {studentData.school}</div>
-                    <div><strong className="block text-slate-500 dark:text-slate-400">التاريخ:</strong> {studentData.date}</div>
-                </div>
-              </div>
-              {mode === 'admin' && (
-                <button onClick={() => setIsProfileModalOpen(true)} className="flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                  <EditIcon className="w-4 h-4"/>
-                  تعديل الملف الشخصي
+        <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2 flex items-center justify-between gap-2">
+             <div className="flex items-center gap-1">
+                 <button onClick={() => setViewingCommentsFor(achievement)} className="text-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
+                    <span>{achievement.comments.length}</span> تعليقات
                 </button>
-              )}
+            </div>
+            <div className="flex items-center gap-1">
+                <button onClick={() => setPlayingGame(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="العب لعبة"><GameIcon className="w-4 h-4 text-purple-500" /></button>
+                {mode === 'admin' && (
+                    <>
+                        <button onClick={() => handleGetAiFeedback(achievement)} disabled={isAiLoading[achievement.id]} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="اقتراح من الذكاء الاصطناعي">
+                           {isAiLoading[achievement.id] ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon className="w-4 h-4 text-yellow-500" />}
+                        </button>
+                        <button onClick={() => setEditingSection(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="تعديل"><EditIcon className="w-4 h-4 text-blue-500" /></button>
+                         <button onClick={() => handleDeleteAchievement(achievement.id)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="حذف"><TrashIcon className="w-4 h-4 text-red-500" /></button>
+                    </>
+                )}
             </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {studentData.achievements.map((section, index) => {
-                const styles = sectionStyles[section.type] || sectionStyles.goals;
-                return (
-                    <div key={section.id} className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 flex flex-col transition-transform duration-300 hover:-translate-y-2 border-t-4 ${styles.border}`} style={{ animationDelay: `${index * 100}ms` }}>
-                        <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className={`p-3 rounded-full ${styles.bg}`}>
-                                <SectionIcon sectionType={section.type} className={`w-6 h-6 ${styles.text}`} />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{section.title}</h3>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button onClick={() => setPlayingGame(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Play game for ${section.title}`}>
-                                <GameIcon />
-                            </button>
-                            {mode === 'admin' && (
-                            <>
-                                <button onClick={() => handleGetAiFeedback(section)} disabled={isAiLoading[section.id]} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label={`Get AI feedback for ${section.title}`}>
-                                    {isAiLoading[section.id] ? <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon />}
-                                </button>
-                                <button onClick={() => setEditingSection(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Edit ${section.title}`}>
-                                    <EditIcon />
-                                </button>
-                                <button onClick={() => handleDeleteAchievement(section.id)} className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors" aria-label={`Delete ${section.title}`}>
-                                    <TrashIcon />
-                                </button>
-                            </>
-                            )}
-                        </div>
-                        </div>
-                        <p className="text-slate-600 dark:text-slate-300 flex-grow mb-4">{section.content}</p>
-                        
-                        {section.file && renderFilePreview(section.file)}
+    </div>
+  );
 
-                        <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
-                            {section.comments.length > 0 || mode === 'admin' ? (
-                                <button
-                                    onClick={() => setViewingCommentsFor(section)}
-                                    className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 rounded-md px-2 py-1"
-                                >
-                                    {section.comments.length > 0 ? `عرض التعليقات (${section.comments.length})` : 'أضف تعليقاً'}
-                                </button>
-                            ) : (
-                                <p className="text-sm text-slate-400 dark:text-slate-500 italic"></p>
-                            )}
-                        </div>
+  const Dashboard = () => {
+    const sections = Object.keys(sectionTypeTitles) as SectionId[];
+    return (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">لوحة الإنجازات</h2>
+                        <p className="text-slate-600 dark:text-slate-300 mt-2">استعراض منظم لجميع الإنجازات حسب الفئة.</p>
                     </div>
-                )
-            })}
+                     <AnimatedHeader page="dashboard" />
+                </div>
+            </div>
+
             {mode === 'admin' && (
-                 <div 
-                    className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-300 min-h-[300px] hover:border-blue-500 dark:hover:border-blue-500"
-                    onClick={() => setIsAddModalOpen(true)}
-                >
-                    <div className="text-center">
-                        <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-4 transition-colors">
-                            <PlusIcon className="w-8 h-8 text-slate-500 dark:text-slate-400" />
-                        </div>
-                        <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200">إضافة إنجاز جديد</h3>
-                    </div>
+                <div className="mb-6 text-right">
+                    <button onClick={() => setIsAddModalOpen(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        <PlusIcon />
+                        إضافة إنجاز جديد
+                    </button>
                 </div>
             )}
-        </div>
-    </div>
-  );
-
-  const SkillsView = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">مهاراتي</h2>
-            <AnimatedHeader page="skills" />
-        </div>
-        {studentData.skills.length === 0 ? (
-            <div className="text-center py-16 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                <SkillsIcon className="w-16 h-16 mx-auto text-slate-400 dark:text-slate-500 mb-4"/>
-                <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200">لم تقم بإضافة أي مهارات بعد</h3>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 mb-6">هذا هو المكان المناسب لعرض نقاط قوتك ومواهبك.</p>
-                {mode === 'admin' && (
-                    <button 
-                        onClick={() => setIsSkillModalOpen(true)}
-                        className="flex items-center gap-2 mx-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
-                    >
-                        <PlusIcon className="w-5 h-5" /> إضافة مهارتك الأولى
-                    </button>
-                )}
-            </div>
-        ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {studentData.skills.map(skill => (
-                    <div key={skill.id} className="group relative bg-white dark:bg-slate-800 rounded-xl shadow p-5 text-center flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700">
-                        {mode === 'admin' && (
-                             <button onClick={() => handleDeleteSkill(skill.id)} className="absolute top-2 right-2 p-1.5 rounded-full text-red-500 bg-red-100 dark:bg-red-900/50 transition-opacity" aria-label={`Delete ${skill.name}`}>
-                               <TrashIcon className="w-4 h-4" />
-                           </button>
-                        )}
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3">{skill.name}</h3>
-                        <div className="flex gap-1" dir="ltr">
-                            {[...Array(5)].map((_, i) => (
-                                <span key={i} className={`text-2xl ${i < skill.level ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}`}>
-                                    ★
-                                </span>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {sections.map(sectionType => (
+                    <div key={sectionType} className={`bg-white dark:bg-slate-800 p-4 rounded-lg shadow-lg border-2 ${sectionStyles[sectionType].border}`}>
+                        <div className={`flex items-center gap-3 mb-3`}>
+                            <SectionIcon sectionType={sectionType} className={`w-7 h-7 ${sectionStyles[sectionType].text}`} />
+                            <h3 className={`text-xl font-bold ${sectionStyles[sectionType].text}`}>{sectionTypeTitles[sectionType]}</h3>
+                        </div>
+                        <hr className={`border-t ${sectionStyles[sectionType].border} mb-4`} />
+                        <div className="space-y-4">
+                            {studentData.achievements.filter(a => a.type === sectionType).map(achievement => (
+                                <AchievementCard key={achievement.id} achievement={achievement} />
                             ))}
+                            {studentData.achievements.filter(a => a.type === sectionType).length === 0 && (
+                                <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">لا توجد إنجازات في هذا القسم بعد.</p>
+                            )}
                         </div>
                     </div>
                 ))}
-                {mode === 'admin' && (
-                     <div 
-                        className="bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-300 min-h-[140px] hover:border-blue-500 dark:hover:border-blue-500"
-                        onClick={() => setIsSkillModalOpen(true)}
-                    >
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-3 transition-colors">
-                                <PlusIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" />
-                            </div>
-                            <h3 className="font-semibold text-md text-slate-700 dark:text-slate-200">إضافة مهارة</h3>
-                        </div>
-                    </div>
-                )}
             </div>
-        )}
-    </div>
-  );
-
-  const SubjectsView = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">ماداتي المفضلة</h2>
-            <AnimatedHeader page="subjects" />
         </div>
-        {studentData.subjects.length === 0 ? (
-            <div className="text-center py-16 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                <BookIcon className="w-16 h-16 mx-auto text-slate-400 dark:text-slate-500 mb-4"/>
-                <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200">لم تقم بإضافة أي مواد مفضلة بعد</h3>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 mb-6">هذا هو المكان المناسب لعرض المواد التي تستمتع بها.</p>
-                {mode === 'admin' && (
-                    <button 
-                        onClick={() => setIsSubjectModalOpen(true)}
-                        className="flex items-center gap-2 mx-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
-                    >
-                        <PlusIcon className="w-5 h-5" /> أضف مادتك المفضلة الأولى
-                    </button>
-                )}
+    );
+  };
+
+  const SkillsView = () => {
+    const [newSkillName, setNewSkillName] = useState('');
+    const [newSkillLevel, setNewSkillLevel] = useState<Skill['level']>(1);
+    
+    const handleAddSkill = (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!newSkillName.trim()) return;
+        skillHandlers.handleSave({ name: newSkillName, level: newSkillLevel });
+        setNewSkillName('');
+        setNewSkillLevel(1);
+    };
+
+    return (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">مهاراتي</h2>
+                        <p className="text-slate-600 dark:text-slate-300 mt-2">قائمة بالمهارات التي أمتلكها وأعمل على تطويرها.</p>
+                    </div>
+                     <AnimatedHeader page="skills" />
+                </div>
             </div>
-        ) : (
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {studentData.subjects.map(subject => (
-                    <div key={subject.id} className="relative bg-white dark:bg-slate-800 rounded-xl shadow p-6 flex flex-col border border-slate-200 dark:border-slate-700">
-                        {mode === 'admin' && (
-                             <button onClick={() => handleDeleteSubject(subject.id)} className="absolute top-2 right-2 p-1.5 rounded-full text-red-500 bg-red-100 dark:bg-red-900/50" aria-label={`Delete ${subject.name}`}>
-                               <TrashIcon className="w-4 h-4" />
-                           </button>
-                        )}
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
-                                <BookIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                {studentData.skills.map(skill => (
+                    <div key={skill.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{skill.name}</h3>
+                            <div className="flex items-center mt-2">
+                                {[...Array(5)].map((_, i) => (
+                                    <svg key={i} className={`w-5 h-5 ${i < skill.level ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                ))}
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{subject.name}</h3>
                         </div>
-                        <p className="text-slate-600 dark:text-slate-300 flex-grow">{subject.reason}</p>
+                        {mode === 'admin' && (
+                            <button onClick={() => skillHandlers.handleDelete(skill.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"><TrashIcon /></button>
+                        )}
                     </div>
                 ))}
-                {mode === 'admin' && (
-                     <div 
-                        className="bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-300 min-h-[140px] hover:border-blue-500 dark:hover:border-blue-500"
-                        onClick={() => setIsSubjectModalOpen(true)}
-                    >
-                        <div className="text-center">
-                            <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-3 transition-colors">
-                                <PlusIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" />
-                            </div>
-                            <h3 className="font-semibold text-md text-slate-700 dark:text-slate-200">إضافة مادة</h3>
-                        </div>
-                    </div>
-                )}
             </div>
-        )}
+            
+            {mode === 'admin' && (
+                 <form onSubmit={handleAddSkill} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-bold mb-4">إضافة مهارة جديدة</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" value={newSkillName} onChange={e => setNewSkillName(e.target.value)} placeholder="اسم المهارة" className="md:col-span-2 w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
+                        <select value={newSkillLevel} onChange={e => setNewSkillLevel(Number(e.target.value) as Skill['level'])} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                            {[1, 2, 3, 4, 5].map(level => <option key={level} value={level}>{level} - {"⭐".repeat(level)}</option>)}
+                        </select>
+                    </div>
+                    <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
+                </form>
+            )}
+        </div>
+    );
+  };
+
+  const SubjectsView = () => {
+    const [newSubjectName, setNewSubjectName] = useState('');
+    const [newSubjectReason, setNewSubjectReason] = useState('');
+
+    const handleAddSubject = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newSubjectName.trim() || !newSubjectReason.trim()) return;
+        subjectHandlers.handleSave({ name: newSubjectName, reason: newSubjectReason });
+        setNewSubjectName('');
+        setNewSubjectReason('');
+    };
+
+    return (
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">موادي المفضلة</h2>
+                        <p className="text-slate-600 dark:text-slate-300 mt-2">المواد الدراسية التي أستمتع بها ولماذا.</p>
+                    </div>
+                    <AnimatedHeader page="subjects" />
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {studentData.subjects.map(subject => (
+                     <div key={subject.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-start">
+                        <div className="flex-grow">
+                             <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{subject.name}</h3>
+                             <p className="text-slate-600 dark:text-slate-300 mt-1">{subject.reason}</p>
+                        </div>
+                         {mode === 'admin' && (
+                             <button onClick={() => subjectHandlers.handleDelete(subject.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0 ml-4"><TrashIcon /></button>
+                         )}
+                    </div>
+                ))}
+            </div>
+
+            {mode === 'admin' && (
+                <form onSubmit={handleAddSubject} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-bold mb-4">إضافة مادة جديدة</h3>
+                    <div className="space-y-4">
+                        <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="اسم المادة" className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
+                        <textarea value={newSubjectReason} onChange={e => setNewSubjectReason(e.target.value)} placeholder="لماذا تحب هذه المادة؟" rows={3} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"></textarea>
+                    </div>
+                    <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
+                </form>
+            )}
+        </div>
+    );
+  };
+  
+  const AchievementTimelineCard: React.FC<{ achievement: AchievementSection }> = ({ achievement }) => (
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 w-full">
+        <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">{new Date(achievement.lastUpdated).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{achievement.content}</p>
     </div>
   );
 
   const TimelineView = () => {
-    const sortedAchievements = [...studentData.achievements].sort((a,b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+    const sortedAchievements = [...studentData.achievements].sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
     
     return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">الخط الزمني للإنجازات</h2>
-                <AnimatedHeader page="timeline" />
-            </div>
-            {sortedAchievements.length === 0 ? (
-                <div className="text-center py-16 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                    <TimelineIcon className="w-16 h-16 mx-auto text-slate-400 dark:text-slate-500 mb-4"/>
-                    <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200">لا يوجد إنجازات لعرضها في الخط الزمني.</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">أضف إنجازًا جديدًا من لوحة التحكم ليظهر هنا.</p>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">الخط الزمني للإنجازات</h2>
+                        <p className="text-slate-600 dark:text-slate-300 mt-2">رحلة إنجازاتي مرتبة من الأحدث إلى الأقدم.</p>
+                    </div>
+                    <AnimatedHeader page="timeline" />
                 </div>
-            ) : (
-                <div className="relative max-w-5xl mx-auto">
-                    {/* Vertical Line */}
-                    <div className="absolute left-4 top-0 md:left-1/2 md:-translate-x-1/2 w-1 h-full bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+            </div>
 
-                    <div className="relative">
-                        {sortedAchievements.map((section, index) => {
-                             const styles = sectionStyles[section.type] || sectionStyles.goals;
-                             return (
-                                <div key={section.id} className="mb-10">
-                                    {/* The Dot */}
-                                    <div className={`absolute top-1.5 left-4 md:left-1/2 w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-4 ${styles.border} ring-4 ring-white dark:ring-slate-900 -translate-x-1/2 flex items-center justify-center z-10`}>
-                                        <SectionIcon sectionType={section.type} className={`w-4 h-4 ${styles.text}`} />
-                                    </div>
+            <div className="relative">
+                {/* Vertical line */}
+                <div 
+                    className="absolute h-full border-r-2 border-slate-200 dark:border-slate-700 top-0 left-6 md:left-1/2 md:-translate-x-1/2" 
+                    style={{ right: 'auto' }}
+                ></div>
 
-                                    {/* The Card */}
-                                    <div className={`w-[calc(100%-4rem)] ml-12 md:w-[calc(50%-2.5rem)] ${index % 2 === 0 ? 'md:ml-[calc(50%+2.5rem)] md:text-left' : 'md:ml-0 md:mr-auto md:text-right'}`}>
-                                        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 relative">
-                                            {/* Arrow for desktop */}
-                                            <div className={`absolute top-4 h-0 w-0 border-y-8 border-y-transparent hidden md:block ${index % 2 === 0 ? `right-full border-r-8 border-r-white dark:border-r-slate-800` : `left-full border-l-8 border-l-white dark:border-l-slate-800`}`}></div>
-                                            
-                                            <p className={`text-sm font-semibold mb-1 ${styles.text}`}>{sectionTypeTitles[section.type]}</p>
-                                            <h3 className="text-md font-bold text-slate-800 dark:text-white mb-2">{section.title}</h3>
-                                            <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(section.lastUpdated).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                        </div>
-                                    </div>
+                <div className="space-y-12">
+                    {sortedAchievements.map((achievement, index) => {
+                        const isEven = index % 2 === 0;
+                        return (
+                            <div key={achievement.id} className={`relative md:flex md:items-center ${!isEven ? 'md:flex-row-reverse' : ''}`}>
+                                
+                                <div className="absolute z-10 flex items-center justify-center w-12 h-12 bg-blue-500 rounded-full shadow-lg top-0 left-6 transform -translate-x-1/2 md:left-1/2">
+                                    <SectionIcon sectionType={achievement.type} className="w-6 h-6 text-white" />
                                 </div>
-                            )
-                        })}
+
+                                <div className="hidden md:block md:w-1/2"></div>
+                                
+                                <div className="w-full pl-20 md:w-1/2 md:px-8">
+                                    <AchievementTimelineCard achievement={achievement} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+  };
+  
+  const CommentsModal: React.FC<{ 
+    section: AchievementSection | null; 
+    onClose: () => void; 
+  }> = ({ section, onClose }) => {
+    if (!section) return null;
+
+    return (
+        <Modal isOpen={!!section} onClose={onClose} title={`تعليقات على: ${section.title}`}>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {section.comments.length === 0 ? (
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-4">لا توجد تعليقات بعد.</p>
+                ) : (
+                    section.comments.map(comment => (
+                        <div key={comment.id} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
+                            <div className="flex justify-between items-center mb-1">
+                                <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{comment.teacherName}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(comment.timestamp).toLocaleString('ar-SA')}</p>
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
+                        </div>
+                    ))
+                )}
+            </div>
+            {mode === 'admin' && (
+                <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newComment[section.id] || ''}
+                            onChange={(e) => setNewComment(prev => ({ ...prev, [section.id]: e.target.value }))}
+                            placeholder="اكتب تعليقك هنا..."
+                            className="flex-grow p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                        />
+                        <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                            <SendIcon />
+                        </button>
                     </div>
                 </div>
             )}
-        </div>
+        </Modal>
     );
-};
-
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-500">
       <Header />
-      <main>
+       <main>
         {view === 'home' && <HomeView />}
         {view === 'dashboard' && <Dashboard />}
         {view === 'skills' && <SkillsView />}
@@ -982,100 +776,33 @@ const App: React.FC = () => {
       <footer className="text-center py-6 border-t border-slate-200 dark:border-slate-800 mt-12">
         <p className="text-sm text-slate-500 dark:text-slate-400">&copy; {new Date().getFullYear()} إنجازاتي - {studentData.name}. جميع الحقوق محفوظة.</p>
       </footer>
-
+      
       {/* Modals */}
-      <Modal isOpen={!!editingSection} onClose={() => setEditingSection(null)} title={`تعديل: ${editingSection?.title}`}>
-        {editingSection && (
-          <AchievementForm 
-            section={editingSection} 
-            onSave={handleUpdateSection} 
-            onClose={() => setEditingSection(null)}
-          />
-        )}
-      </Modal>
+      {editingSection && (
+        <Modal isOpen={!!editingSection} onClose={() => setEditingSection(null)} title={`تعديل: ${editingSection.title}`}>
+            <AchievementForm section={editingSection} onSave={handleUpdateSection} onClose={() => setEditingSection(null)} />
+        </Modal>
+      )}
+
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="إضافة إنجاز جديد">
-          <AchievementAddForm
-            onSave={(newSectionData) => {
-                handleSaveNewAchievement(newSectionData);
-                setIsAddModalOpen(false);
-            }}
-            onClose={() => setIsAddModalOpen(false)}
-          />
+        <AchievementAddForm onSave={handleSaveNewAchievement} onClose={() => setIsAddModalOpen(false)} />
       </Modal>
-       <Modal isOpen={isSkillModalOpen} onClose={() => setIsSkillModalOpen(false)} title="إضافة مهارة جديدة">
-          <SkillAddForm 
-            onSave={(newSkillData) => {
-                handleSaveNewSkill(newSkillData);
-                setIsSkillModalOpen(false);
-            }}
-            onClose={() => setIsSkillModalOpen(false)}
-          />
-      </Modal>
-      <Modal isOpen={isSubjectModalOpen} onClose={() => setIsSubjectModalOpen(false)} title="إضافة مادة مفضلة جديدة">
-          <SubjectAddForm 
-            onSave={(newSubjectData) => {
-                handleSaveNewSubject(newSubjectData);
-                setIsSubjectModalOpen(false);
-            }}
-            onClose={() => setIsSubjectModalOpen(false)}
-          />
-      </Modal>
+    
       <Modal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} title="تعديل الملف الشخصي">
-        <ProfileEditForm 
-            student={studentData}
-            onSave={(data) => {
-                handleProfileUpdate(data);
-                setIsProfileModalOpen(false);
-            }}
-            onClose={() => setIsProfileModalOpen(false)}
-        />
+        <ProfileEditForm student={studentData} onSave={handleProfileUpdate} onClose={() => setIsProfileModalOpen(false)} />
       </Modal>
-       <Modal isOpen={!!playingGame} onClose={() => setPlayingGame(null)} title={`لعبة: ${playingGame?.title || ''}`}>
-        {playingGame && (
-          <AchievementGame section={playingGame} />
-        )}
+
+      <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="تسجيل دخول المدير">
+        <PasswordModalContent onSuccess={handlePasswordSuccess} onClose={() => setIsPasswordModalOpen(false)} />
       </Modal>
-       <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="دخول المدير">
-        <PasswordModalContent 
-            onSuccess={handlePasswordSuccess}
-            onClose={() => setIsPasswordModalOpen(false)}
-        />
-      </Modal>
-      <Modal isOpen={!!viewingCommentsFor} onClose={() => setViewingCommentsFor(null)} title={`التعليقات على: ${viewingCommentsFor?.title || ''}`}>
-          {viewingCommentsFor && (
-              <div className="space-y-4">
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2 -mr-2">
-                      {viewingCommentsFor.comments.length > 0 ? viewingCommentsFor.comments.map(comment => (
-                          <div key={comment.id} className={`p-3 rounded-lg ${comment.teacherName === 'مرشد الذكاء الاصطناعي' ? 'bg-purple-50 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-800' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
-                              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
-                              <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-left flex items-center gap-1.5 justify-end">
-                                  {comment.teacherName === 'مرشد الذكاء الاصطناعي' && <SparklesIcon className="w-3 h-3 text-purple-500" />}
-                                  <span>{comment.teacherName} - {new Date(comment.timestamp).toLocaleDateString('ar')}</span>
-                              </div>
-                          </div>
-                      )) : <p className="text-sm text-slate-400 italic text-center py-4"> {mode === 'admin' && 'كن أول من يعلق!'}</p>}
-                  </div>
-                  {mode === 'admin' && (
-                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                          <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-3">إضافة تعليق جديد</h4>
-                          <div className="flex gap-2">
-                              <textarea
-                                  placeholder="أضف تعليقًا..."
-                                  value={newComment[viewingCommentsFor.id] || ''}
-                                  onChange={(e) => handleCommentChange(viewingCommentsFor.id, e.target.value)}
-                                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddComment(viewingCommentsFor.id))}
-                                  rows={3}
-                                  className="flex-grow p-2 text-sm border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-                              />
-                              <button onClick={() => handleAddComment(viewingCommentsFor.id)} className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors self-start">
-                                  <SendIcon />
-                              </button>
-                          </div>
-                      </div>
-                  )}
-              </div>
-          )}
-      </Modal>
+
+      {playingGame && (
+          <Modal isOpen={!!playingGame} onClose={() => setPlayingGame(null)} title={`لعبة: ${playingGame.title}`}>
+              <AchievementGame section={playingGame} />
+          </Modal>
+      )}
+
+      <CommentsModal section={viewingCommentsFor} onClose={() => setViewingCommentsFor(null)} />
     </div>
   );
 };
