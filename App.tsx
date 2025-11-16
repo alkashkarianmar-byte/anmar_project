@@ -155,10 +155,470 @@ const AchievementAddForm: React.FC<{
 };
 // --- End Forms ---
 
+// --- View Components ---
+type View = 'home' | 'dashboard' | 'timeline' | 'skills' | 'subjects';
+
+interface HeaderProps {
+  mode: 'visitor' | 'admin';
+  view: View;
+  setView: (view: View) => void;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (isOpen: boolean) => void;
+  toggleTheme: () => void;
+  theme: 'light' | 'dark';
+  handleAdminLogout: () => void;
+  handleAdminLogin: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ mode, view, setView, isMobileMenuOpen, setIsMobileMenuOpen, toggleTheme, theme, handleAdminLogout, handleAdminLogin }) => (
+  <header className="sticky top-0 z-40 w-full backdrop-blur flex-none transition-colors duration-500 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-800 dark:text-white">إنجازاتي</h1>
+                   {mode === 'admin' && <span className="text-xs font-bold text-green-500 bg-green-100 dark:bg-green-900/50 dark:text-green-400 px-2 py-1 rounded-full">وضع المدير</span>}
+              </div>
+              <div className="flex items-center">
+                  <nav className="hidden md:flex items-center gap-1">
+                      <button onClick={() => setView('home')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
+                      <button onClick={() => setView('dashboard')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
+                      <button onClick={() => setView('skills')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
+                      <button onClick={() => setView('subjects')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
+                      <button onClick={() => setView('timeline')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
+                  </nav>
+                  <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 ml-2 pl-2">
+                      <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                          {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
+                      </button>
+                      {mode === 'admin' ? <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير"><UnlockIcon className="w-5 h-5 text-green-500" /></button> : <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير"><LockIcon className="w-5 h-5 text-slate-500" /></button>}
+                  </div>
+                  <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-2">
+                      {isMobileMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+                  </button>
+              </div>
+          </div>
+      </div>
+      {isMobileMenuOpen && (
+           <nav className="md:hidden flex flex-col p-4 gap-3 border-t border-slate-200 dark:border-slate-700">
+              <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
+              <button onClick={() => { setView('dashboard'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
+              <button onClick={() => { setView('skills'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
+              <button onClick={() => { setView('subjects'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
+              <button onClick={() => { setView('timeline'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
+          </nav>
+      )}
+  </header>
+);
+
+interface HomeViewProps {
+  studentData: StudentData;
+  mode: 'visitor' | 'admin';
+  setIsProfileModalOpen: (isOpen: boolean) => void;
+  setView: (view: View) => void;
+}
+const HomeView: React.FC<HomeViewProps> = ({ studentData, mode, setIsProfileModalOpen, setView }) => (
+  <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center sticky top-24">
+                  <img src={studentData.profileImageUrl} alt={studentData.name} className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-slate-200 dark:border-slate-700 object-cover" />
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{studentData.name}</h2>
+                  <p className="text-slate-500 dark:text-slate-400">{studentData.grade}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{studentData.school}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{studentData.location}</p>
+                  <p className="mt-4 text-slate-600 dark:text-slate-300 text-sm">{studentData.bio}</p>
+                  {mode === 'admin' && (
+                      <button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors text-sm font-semibold">
+                          <EditIcon />
+                          تعديل الملف الشخصي
+                      </button>
+                  )}
+              </div>
+          </div>
+          <div className="md:col-span-2">
+               <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+                  <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                      <div>
+                          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">أهلاً بك في ملف إنجازاتي</h2>
+                          <p className="text-slate-600 dark:text-slate-300 mt-2">هنا أوثق رحلتي التعليمية، إنجازاتي، ومهاراتي التي أكتسبها.</p>
+                      </div>
+                      <AnimatedHeader page="home" />
+                  </div>
+              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <button onClick={() => setView('dashboard')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                      <GoalIcon className="mx-auto w-8 h-8 text-blue-500 mb-2" />
+                      <h3 className="font-semibold">الإنجازات</h3>
+                  </button>
+                  <button onClick={() => setView('skills')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                      <SkillsIcon className="mx-auto w-8 h-8 text-purple-500 mb-2" />
+                      <h3 className="font-semibold">مهاراتي</h3>
+                  </button>
+                  <button onClick={() => setView('subjects')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
+                      <BookIcon className="mx-auto w-8 h-8 text-green-500 mb-2" />
+                      <h3 className="font-semibold">موادي المفضلة</h3>
+                  </button>
+              </div>
+          </div>
+      </div>
+  </div>
+);
+
+interface AchievementCardProps {
+  achievement: AchievementSection;
+  mode: 'visitor' | 'admin';
+  isAiLoading: { [key: string]: boolean };
+  setViewingCommentsFor: (section: AchievementSection) => void;
+  setPlayingGame: (section: AchievementSection) => void;
+  handleGetAiFeedback: (section: AchievementSection) => void;
+  setEditingSection: (section: AchievementSection) => void;
+  handleDeleteAchievement: (id: string) => void;
+}
+const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, mode, isAiLoading, setViewingCommentsFor, setPlayingGame, handleGetAiFeedback, setEditingSection, handleDeleteAchievement }) => (
+  <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+      <div className="p-4">
+          <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">{achievement.content}</p>
+          {achievement.file && (
+              <a href={achievement.file.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                  {achievement.file.type.startsWith('image/') ? <UploadIcon className="w-4 h-4" /> : <DocumentFileIcon className="w-4 h-4" />}
+                  {achievement.file.name}
+              </a>
+          )}
+           <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">آخر تحديث: {new Date(achievement.lastUpdated).toLocaleDateString('ar-SA')}</p>
+      </div>
+      <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2 flex items-center justify-between gap-2">
+           <div className="flex items-center gap-1">
+               <button onClick={() => setViewingCommentsFor(achievement)} className="text-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
+                  <span>{achievement.comments.length}</span> تعليقات
+              </button>
+          </div>
+          <div className="flex items-center gap-1">
+              <button onClick={() => setPlayingGame(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="العب لعبة"><GameIcon className="w-4 h-4 text-purple-500" /></button>
+              {mode === 'admin' && (
+                  <>
+                      <button onClick={() => handleGetAiFeedback(achievement)} disabled={isAiLoading[achievement.id]} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="اقتراح من الذكاء الاصطناعي">
+                         {isAiLoading[achievement.id] ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon className="w-4 h-4 text-yellow-500" />}
+                      </button>
+                      <button onClick={() => setEditingSection(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="تعديل"><EditIcon className="w-4 h-4 text-blue-500" /></button>
+                       <button onClick={() => handleDeleteAchievement(achievement.id)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="حذف"><TrashIcon className="w-4 h-4 text-red-500" /></button>
+                  </>
+              )}
+          </div>
+      </div>
+  </div>
+);
+
+interface DashboardProps {
+  studentData: StudentData;
+  mode: 'visitor' | 'admin';
+  setIsAddModalOpen: (isOpen: boolean) => void;
+  achievementCardProps: Omit<AchievementCardProps, 'achievement'>;
+}
+const Dashboard: React.FC<DashboardProps> = ({ studentData, mode, setIsAddModalOpen, achievementCardProps }) => {
+  const sections = Object.keys(sectionTypeTitles) as SectionId[];
+  return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                  <div>
+                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white">لوحة الإنجازات</h2>
+                      <p className="text-slate-600 dark:text-slate-300 mt-2">استعراض منظم لجميع الإنجازات حسب الفئة.</p>
+                  </div>
+                   <AnimatedHeader page="dashboard" />
+              </div>
+          </div>
+
+          {mode === 'admin' && (
+              <div className="mb-6 text-right">
+                  <button onClick={() => setIsAddModalOpen(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                      <PlusIcon />
+                      إضافة إنجاز جديد
+                  </button>
+              </div>
+          )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {sections.map(sectionType => (
+                  <div key={sectionType} className={`bg-white dark:bg-slate-800 p-4 rounded-lg shadow-lg border-2 ${sectionStyles[sectionType].border}`}>
+                      <div className={`flex items-center gap-3 mb-3`}>
+                          <SectionIcon sectionType={sectionType} className={`w-7 h-7 ${sectionStyles[sectionType].text}`} />
+                          <h3 className={`text-xl font-bold ${sectionStyles[sectionType].text}`}>{sectionTypeTitles[sectionType]}</h3>
+                      </div>
+                      <hr className={`border-t ${sectionStyles[sectionType].border} mb-4`} />
+                      <div className="space-y-4">
+                          {studentData.achievements.filter(a => a.type === sectionType).map(achievement => (
+                              <AchievementCard key={achievement.id} achievement={achievement} {...achievementCardProps} />
+                          ))}
+                          {studentData.achievements.filter(a => a.type === sectionType).length === 0 && (
+                              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">لا توجد إنجازات في هذا القسم بعد.</p>
+                          )}
+                      </div>
+                  </div>
+              ))}
+          </div>
+      </div>
+  );
+};
+
+interface SkillsViewProps {
+  studentData: StudentData;
+  mode: 'visitor' | 'admin';
+  skillHandlers: {
+    handleSave: (newItemData: Omit<Skill, 'id'>) => Promise<void>;
+    handleDelete: (itemId: string) => Promise<void>;
+  }
+}
+const SkillsView: React.FC<SkillsViewProps> = ({ studentData, mode, skillHandlers }) => {
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillLevel, setNewSkillLevel] = useState<Skill['level']>(1);
+  
+  const handleAddSkill = (e: React.FormEvent) => {
+      e.preventDefault();
+      if(!newSkillName.trim()) return;
+      skillHandlers.handleSave({ name: newSkillName, level: newSkillLevel });
+      setNewSkillName('');
+      setNewSkillLevel(1);
+  };
+
+  return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                  <div>
+                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white">مهاراتي</h2>
+                      <p className="text-slate-600 dark:text-slate-300 mt-2">قائمة بالمهارات التي أمتلكها وأعمل على تطويرها.</p>
+                  </div>
+                   <AnimatedHeader page="skills" />
+              </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {studentData.skills.map(skill => (
+                  <div key={skill.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-center">
+                      <div>
+                          <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{skill.name}</h3>
+                          <div className="flex items-center mt-2">
+                              {[...Array(5)].map((_, i) => (
+                                  <svg key={i} className={`w-5 h-5 ${i < skill.level ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                              ))}
+                          </div>
+                      </div>
+                      {mode === 'admin' && (
+                          <button onClick={() => skillHandlers.handleDelete(skill.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"><TrashIcon /></button>
+                      )}
+                  </div>
+              ))}
+          </div>
+          
+          {mode === 'admin' && (
+               <form onSubmit={handleAddSkill} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                  <h3 className="text-xl font-bold mb-4">إضافة مهارة جديدة</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <input type="text" value={newSkillName} onChange={e => setNewSkillName(e.target.value)} placeholder="اسم المهارة" className="md:col-span-2 w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
+                      <select value={newSkillLevel} onChange={e => setNewSkillLevel(Number(e.target.value) as Skill['level'])} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                          {[1, 2, 3, 4, 5].map(level => <option key={level} value={level}>{level} - {"⭐".repeat(level)}</option>)}
+                      </select>
+                  </div>
+                  <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
+              </form>
+          )}
+      </div>
+  );
+};
+
+interface SubjectsViewProps {
+  studentData: StudentData;
+  mode: 'visitor' | 'admin';
+  subjectHandlers: {
+    handleSave: (newItemData: Omit<Subject, 'id'>) => Promise<void>;
+    handleDelete: (itemId: string) => Promise<void>;
+  }
+}
+const SubjectsView: React.FC<SubjectsViewProps> = ({ studentData, mode, subjectHandlers }) => {
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectReason, setNewSubjectReason] = useState('');
+
+  const handleAddSubject = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newSubjectName.trim() || !newSubjectReason.trim()) return;
+      subjectHandlers.handleSave({ name: newSubjectName, reason: newSubjectReason });
+      setNewSubjectName('');
+      setNewSubjectReason('');
+  };
+
+  return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                  <div>
+                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white">موادي المفضلة</h2>
+                      <p className="text-slate-600 dark:text-slate-300 mt-2">المواد الدراسية التي أستمتع بها ولماذا.</p>
+                  </div>
+                  <AnimatedHeader page="subjects" />
+              </div>
+          </div>
+
+          <div className="space-y-4">
+              {studentData.subjects.map(subject => (
+                   <div key={subject.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-start">
+                      <div className="flex-grow">
+                           <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{subject.name}</h3>
+                           <p className="text-slate-600 dark:text-slate-300 mt-1">{subject.reason}</p>
+                      </div>
+                       {mode === 'admin' && (
+                           <button onClick={() => subjectHandlers.handleDelete(subject.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0 ml-4"><TrashIcon /></button>
+                       )}
+                  </div>
+              ))}
+          </div>
+
+          {mode === 'admin' && (
+              <form onSubmit={handleAddSubject} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                  <h3 className="text-xl font-bold mb-4">إضافة مادة جديدة</h3>
+                  <div className="space-y-4">
+                      <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="اسم المادة" className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
+                      <textarea value={newSubjectReason} onChange={e => setNewSubjectReason(e.target.value)} placeholder="لماذا تحب هذه المادة؟" rows={3} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"></textarea>
+                  </div>
+                  <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
+              </form>
+          )}
+      </div>
+  );
+};
+
+const AchievementTimelineCard: React.FC<{ achievement: AchievementSection }> = ({ achievement }) => (
+  <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 w-full">
+      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">{new Date(achievement.lastUpdated).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
+      <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{achievement.content}</p>
+  </div>
+);
+
+interface TimelineViewProps {
+  studentData: StudentData;
+}
+const TimelineView: React.FC<TimelineViewProps> = ({ studentData }) => {
+  const sortedAchievements = [...studentData.achievements].sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+  
+  return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
+                  <div>
+                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white">الخط الزمني للإنجازات</h2>
+                      <p className="text-slate-600 dark:text-slate-300 mt-2">رحلة إنجازاتي مرتبة من الأحدث إلى الأقدم.</p>
+                  </div>
+                  <AnimatedHeader page="timeline" />
+              </div>
+          </div>
+
+          <div className="relative">
+              {/* Vertical line */}
+              <div 
+                  className="absolute h-full border-r-2 border-slate-200 dark:border-slate-700 top-0 left-6 md:left-1/2 md:-translate-x-1/2" 
+                  style={{ right: 'auto' }}
+              ></div>
+
+              <div className="space-y-12">
+                  {sortedAchievements.map((achievement, index) => {
+                      const isEven = index % 2 === 0;
+                      return (
+                          <div key={achievement.id} className={`relative md:flex md:items-center ${!isEven ? 'md:flex-row-reverse' : ''}`}>
+                              
+                              <div className="absolute z-10 flex items-center justify-center w-12 h-12 bg-blue-500 rounded-full shadow-lg top-0 left-6 transform -translate-x-1/2 md:left-1/2">
+                                  <SectionIcon sectionType={achievement.type} className="w-6 h-6 text-white" />
+                              </div>
+
+                              <div className="hidden md:block md:w-1/2"></div>
+                              
+                              <div className="w-full pl-20 md:w-1/2 md:px-8">
+                                  <AchievementTimelineCard achievement={achievement} />
+                              </div>
+                          </div>
+                      );
+                  })}
+              </div>
+          </div>
+      </div>
+  );
+};
+
+interface CommentsModalProps {
+  section: AchievementSection | null;
+  onClose: () => void;
+  mode: 'visitor' | 'admin';
+  newComment: { [key: string]: string };
+  setNewComment: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
+  newCommentAuthor: { [key: string]: string };
+  setNewCommentAuthor: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
+  handleAddComment: (sectionId: string) => Promise<void>;
+  handleDeleteComment: (sectionId: string, commentId: string) => Promise<void>;
+}
+const CommentsModal: React.FC<CommentsModalProps> = ({ section, onClose, mode, newComment, setNewComment, newCommentAuthor, setNewCommentAuthor, handleAddComment, handleDeleteComment }) => {
+  if (!section) return null;
+
+  return (
+      <Modal isOpen={!!section} onClose={onClose} title={`تعليقات على: ${section.title}`}>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {section.comments.length === 0 ? (
+                  <p className="text-slate-500 dark:text-slate-400 text-center py-4">لا توجد تعليقات بعد.</p>
+              ) : (
+                  section.comments.map(comment => (
+                      <div key={comment.id} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 flex justify-between items-start gap-2">
+                         <div className="flex-grow">
+                              <div className="flex justify-between items-center mb-1">
+                                  <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{comment.teacherName}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(comment.timestamp).toLocaleString('ar-SA')}</p>
+                              </div>
+                              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
+                          </div>
+                           {mode === 'admin' && (
+                              <button 
+                                  onClick={() => handleDeleteComment(section.id, comment.id)} 
+                                  className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+                                  title="حذف التعليق"
+                              >
+                                  <TrashIcon className="w-4 h-4" />
+                              </button>
+                          )}
+                      </div>
+                  ))
+              )}
+          </div>
+           <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+              <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
+              <div className="space-y-3">
+                  {mode !== 'admin' && (
+                      <input
+                          type="text"
+                          value={newCommentAuthor[section.id] || ''}
+                          onChange={(e) => setNewCommentAuthor(prev => ({ ...prev, [section.id]: e.target.value }))}
+                          placeholder="اسمك"
+                          className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      />
+                  )}
+                  <div className="flex gap-2">
+                      <textarea
+                          value={newComment[section.id] || ''}
+                          onChange={(e) => setNewComment(prev => ({ ...prev, [section.id]: e.target.value }))}
+                          placeholder="اكتب تعليقك هنا..."
+                          rows={2}
+                          className="flex-grow p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none"
+                      />
+                      <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors self-start">
+                          <SendIcon />
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </Modal>
+  );
+};
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [view, setView] = useState<'home' | 'dashboard' | 'timeline' | 'skills' | 'subjects'>('home');
+  const [view, setView] = useState<View>('home');
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -178,7 +638,6 @@ const App: React.FC = () => {
   // Fetch data from Firestore on initial load
   useEffect(() => {
     const fetchData = async () => {
-        // FIX: Use Firebase v8 namespaced API
         const docRef = db.collection('studentData').doc('main');
         const docSnap = await docRef.get();
 
@@ -186,7 +645,6 @@ const App: React.FC = () => {
             setStudentData(docSnap.data() as StudentData);
         } else {
             console.log("No such document! Creating initial data.");
-            // FIX: Use Firebase v8 namespaced API
             await docRef.set(initialData);
             setStudentData(initialData);
         }
@@ -210,7 +668,6 @@ const App: React.FC = () => {
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
   const uploadFile = async (file: File, path: string): Promise<UploadedFile> => {
-    // FIX: Use Firebase v8 namespaced API
     const storageRef = storage.ref(path);
     await storageRef.put(file);
     const downloadURL = await storageRef.getDownloadURL();
@@ -219,7 +676,6 @@ const App: React.FC = () => {
 
   const deleteFileByUrl = async (fileUrl: string) => {
       try {
-          // FIX: Use Firebase v8 namespaced API
           const fileRef = storage.refFromURL(fileUrl);
           await fileRef.delete();
       } catch (error) {
@@ -230,17 +686,14 @@ const App: React.FC = () => {
   const handleUpdateSection = async (updatedSection: AchievementSection, newFile: File | null, fileRemoved: boolean) => {
     if (!studentData) return;
     try {
-        // FIX: Use Firebase v8 namespaced API
         const docRef = db.collection('studentData').doc('main');
         let finalSection = { ...updatedSection };
 
-        // Handle file deletion
         const oldFile = studentData.achievements.find(s => s.id === updatedSection.id)?.file;
         if (oldFile && (fileRemoved || newFile)) {
             await deleteFileByUrl(oldFile.url);
         }
 
-        // Handle file upload
         if (newFile) {
             finalSection.file = await uploadFile(newFile, `achievements/${Date.now()}-${newFile.name}`);
         } else if (fileRemoved) {
@@ -248,7 +701,6 @@ const App: React.FC = () => {
         }
 
         const updatedAchievements = studentData.achievements.map(s => s.id === finalSection.id ? finalSection : s);
-        // FIX: Use Firebase v8 namespaced API
         await docRef.update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
     } catch (error) { console.error("Error updating section:", error); }
@@ -263,7 +715,6 @@ const App: React.FC = () => {
         }
         
         const updatedAchievements = studentData.achievements.filter(s => s.id !== sectionId);
-        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
     } catch (error) { console.error("Error deleting achievement:", error); }
@@ -285,7 +736,6 @@ const App: React.FC = () => {
         }
 
         const updatedAchievements = [...studentData.achievements, newAchievement];
-        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
         setIsAddModalOpen(false);
@@ -297,7 +747,6 @@ const App: React.FC = () => {
     try {
         let profileImageUrl = studentData.profileImageUrl;
         if (newImageFile) {
-            // Delete old profile picture if it's a firebase storage URL
             if (profileImageUrl.includes('firebasestorage')) {
                 await deleteFileByUrl(profileImageUrl);
             }
@@ -306,7 +755,6 @@ const App: React.FC = () => {
         }
 
         const finalData = { ...updatedData, profileImageUrl };
-        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update(finalData);
         setStudentData(prev => prev ? { ...prev, ...finalData } : null);
         setIsProfileModalOpen(false);
@@ -352,40 +800,49 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteComment = async (sectionId: string, commentId: string) => {
-    if (!studentData || mode !== 'admin' || !window.confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
+  const handleDeleteComment = useCallback(async (sectionId: string, commentId: string) => {
+    if (mode !== 'admin' || !window.confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
 
     try {
-      const updatedAchievements = studentData.achievements.map(section => {
-        if (section.id === sectionId) {
-          const updatedComments = section.comments.filter(comment => comment.id !== commentId);
-          return { ...section, comments: updatedComments };
+        const docRef = db.collection('studentData').doc('main');
+        
+        // 1. Get the absolute latest data from Firestore to avoid stale state
+        const docSnap = await docRef.get();
+        if (!docSnap.exists) {
+            throw new Error("Document does not exist in Firestore.");
         }
-        return section;
-      });
+        const currentDataFromDB = docSnap.data() as StudentData;
 
-      // Update Firestore
-      await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
+        // 2. Calculate the new state based on the fresh data
+        const updatedAchievements = currentDataFromDB.achievements.map(section => {
+            if (section.id === sectionId) {
+                const updatedComments = section.comments.filter(comment => comment.id !== commentId);
+                return { ...section, comments: updatedComments };
+            }
+            return section;
+        });
+        
+        // 3. Update Firestore with the new state
+        await docRef.update({ achievements: updatedAchievements });
 
-      // Update local state first to ensure UI consistency
-      setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
+        // 4. Update local React states to reflect the change immediately
+        const newLocalState = { ...currentDataFromDB, achievements: updatedAchievements };
+        setStudentData(newLocalState);
 
-      // Now, update the modal's state directly from the new source of truth to avoid stale data
-      if (viewingCommentsFor?.id === sectionId) {
-        const updatedSectionForModal = updatedAchievements.find(s => s.id === sectionId);
-        if (updatedSectionForModal) {
-          setViewingCommentsFor(updatedSectionForModal);
-        } else {
-          // Fallback: if the section is somehow gone, close the modal.
-          setViewingCommentsFor(null);
-        }
-      }
+        // Use a functional update for the modal to ensure it also uses the latest data
+        setViewingCommentsFor(currentModalSection => {
+            if (currentModalSection?.id === sectionId) {
+                return newLocalState.achievements.find(s => s.id === sectionId) || null;
+            }
+            return currentModalSection;
+        });
 
     } catch (error) {
-      console.error("Error deleting comment:", error);
-      alert('حدث خطأ أثناء حذف التعليق.');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error deleting comment:", error);
+        alert(`حدث خطأ أثناء حذف التعليق: ${errorMessage}`);
     }
-  };
+  }, [mode]);
   
   const handleGetAiFeedback = async (section: AchievementSection) => {
     if (mode !== 'admin' || !studentData) return;
@@ -401,7 +858,6 @@ const App: React.FC = () => {
         const aiComment: TeacherComment = { id: new Date().toISOString(), teacherName: 'مرشد الذكاء الاصطناعي', comment: aiCommentText, timestamp: new Date().toISOString() };
         
         const updatedAchievements = studentData.achievements.map(s => s.id === section.id ? { ...s, comments: [...s.comments, aiComment] } : s);
-        // FIX: Use Firebase v8 namespaced API
         await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
         if (viewingCommentsFor?.id === section.id) {
             setViewingCommentsFor(prev => prev ? { ...prev, comments: [...prev.comments, aiComment] } : null);
@@ -417,14 +873,12 @@ const App: React.FC = () => {
               if (!studentData) return;
               const newItem = { ...newItemData, id: `${dataType}-${Date.now()}` } as T;
               const updatedData = [...studentData[dataType], newItem];
-              // FIX: Use Firebase v8 namespaced API
               await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
               setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
           },
           handleDelete: async (itemId: string) => {
               if (!studentData || !window.confirm(`هل أنت متأكد من الحذف؟`)) return;
               const updatedData = studentData[dataType].filter(item => item.id !== itemId);
-              // FIX: Use Firebase v8 namespaced API
               await db.collection('studentData').doc('main').update({ [dataType]: updatedData });
               setStudentData(prev => prev ? { ...prev, [dataType]: updatedData } : null);
           }
@@ -433,421 +887,38 @@ const App: React.FC = () => {
   const skillHandlers = createCrudHandlers<Skill>('skills');
   const subjectHandlers = createCrudHandlers<Subject>('subjects');
 
-  const handleAdminLoginAndCloseCommentModal = () => {
-    setViewingCommentsFor(null);
-    handleAdminLogin();
-  };
-
-  // --- Render methods ---
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
   if (!studentData) return <div className="min-h-screen flex items-center justify-center"><p>لم يتم العثور على البيانات. الرجاء المحاولة مرة أخرى.</p></div>;
   
-  const Header = () => (
-    <header className="sticky top-0 z-40 w-full backdrop-blur flex-none transition-colors duration-500 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold text-slate-800 dark:text-white">إنجازاتي</h1>
-                     {mode === 'admin' && <span className="text-xs font-bold text-green-500 bg-green-100 dark:bg-green-900/50 dark:text-green-400 px-2 py-1 rounded-full">وضع المدير</span>}
-                </div>
-                <div className="flex items-center">
-                    <nav className="hidden md:flex items-center gap-1">
-                        <button onClick={() => setView('home')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
-                        <button onClick={() => setView('dashboard')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
-                        <button onClick={() => setView('skills')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
-                        <button onClick={() => setView('subjects')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
-                        <button onClick={() => setView('timeline')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
-                    </nav>
-                    <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 ml-2 pl-2">
-                        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                            {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
-                        </button>
-                        {mode === 'admin' ? <button onClick={handleAdminLogout} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="الخروج من وضع المدير"><UnlockIcon className="w-5 h-5 text-green-500" /></button> : <button onClick={handleAdminLogin} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="دخول المدير"><LockIcon className="w-5 h-5 text-slate-500" /></button>}
-                    </div>
-                    <button onClick={() => setIsMobileMenuOpen(prev => !prev)} className="md:hidden p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-2">
-                        {isMobileMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
-                    </button>
-                </div>
-            </div>
-        </div>
-        {isMobileMenuOpen && (
-             <nav className="md:hidden flex flex-col p-4 gap-3 border-t border-slate-200 dark:border-slate-700">
-                <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
-                <button onClick={() => { setView('dashboard'); setIsMobileMenuOpen(false); }} className={`block px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
-                <button onClick={() => { setView('skills'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
-                <button onClick={() => { setView('subjects'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
-                <button onClick={() => { setView('timeline'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-2 px-3 py-2 text-base font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
-            </nav>
-        )}
-    </header>
-  );
-
-  const HomeView = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1">
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center sticky top-24">
-                    <img src={studentData.profileImageUrl} alt={studentData.name} className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-slate-200 dark:border-slate-700 object-cover" />
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{studentData.name}</h2>
-                    <p className="text-slate-500 dark:text-slate-400">{studentData.grade}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{studentData.school}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{studentData.location}</p>
-                    <p className="mt-4 text-slate-600 dark:text-slate-300 text-sm">{studentData.bio}</p>
-                    {mode === 'admin' && (
-                        <button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors text-sm font-semibold">
-                            <EditIcon />
-                            تعديل الملف الشخصي
-                        </button>
-                    )}
-                </div>
-            </div>
-            <div className="md:col-span-2">
-                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
-                        <div>
-                            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">أهلاً بك في ملف إنجازاتي</h2>
-                            <p className="text-slate-600 dark:text-slate-300 mt-2">هنا أوثق رحلتي التعليمية، إنجازاتي، ومهاراتي التي أكتسبها.</p>
-                        </div>
-                        <AnimatedHeader page="home" />
-                    </div>
-                </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <button onClick={() => setView('dashboard')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
-                        <GoalIcon className="mx-auto w-8 h-8 text-blue-500 mb-2" />
-                        <h3 className="font-semibold">الإنجازات</h3>
-                    </button>
-                    <button onClick={() => setView('skills')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
-                        <SkillsIcon className="mx-auto w-8 h-8 text-purple-500 mb-2" />
-                        <h3 className="font-semibold">مهاراتي</h3>
-                    </button>
-                    <button onClick={() => setView('subjects')} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow text-center">
-                        <BookIcon className="mx-auto w-8 h-8 text-green-500 mb-2" />
-                        <h3 className="font-semibold">موادي المفضلة</h3>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-  );
-
-  const AchievementCard: React.FC<{ achievement: AchievementSection }> = ({ achievement }) => (
-    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
-        <div className="p-4">
-            <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">{achievement.content}</p>
-            {achievement.file && (
-                <a href={achievement.file.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                    {achievement.file.type.startsWith('image/') ? <UploadIcon className="w-4 h-4" /> : <DocumentFileIcon className="w-4 h-4" />}
-                    {achievement.file.name}
-                </a>
-            )}
-             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">آخر تحديث: {new Date(achievement.lastUpdated).toLocaleDateString('ar-SA')}</p>
-        </div>
-        <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2 flex items-center justify-between gap-2">
-             <div className="flex items-center gap-1">
-                 <button onClick={() => setViewingCommentsFor(achievement)} className="text-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
-                    <span>{achievement.comments.length}</span> تعليقات
-                </button>
-            </div>
-            <div className="flex items-center gap-1">
-                <button onClick={() => setPlayingGame(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="العب لعبة"><GameIcon className="w-4 h-4 text-purple-500" /></button>
-                {mode === 'admin' && (
-                    <>
-                        <button onClick={() => handleGetAiFeedback(achievement)} disabled={isAiLoading[achievement.id]} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="اقتراح من الذكاء الاصطناعي">
-                           {isAiLoading[achievement.id] ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <SparklesIcon className="w-4 h-4 text-yellow-500" />}
-                        </button>
-                        <button onClick={() => setEditingSection(achievement)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="تعديل"><EditIcon className="w-4 h-4 text-blue-500" /></button>
-                         <button onClick={() => handleDeleteAchievement(achievement.id)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="حذف"><TrashIcon className="w-4 h-4 text-red-500" /></button>
-                    </>
-                )}
-            </div>
-        </div>
-    </div>
-  );
-
-  const Dashboard = () => {
-    const sections = Object.keys(sectionTypeTitles) as SectionId[];
-    return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
-                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">لوحة الإنجازات</h2>
-                        <p className="text-slate-600 dark:text-slate-300 mt-2">استعراض منظم لجميع الإنجازات حسب الفئة.</p>
-                    </div>
-                     <AnimatedHeader page="dashboard" />
-                </div>
-            </div>
-
-            {mode === 'admin' && (
-                <div className="mb-6 text-right">
-                    <button onClick={() => setIsAddModalOpen(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
-                        <PlusIcon />
-                        إضافة إنجاز جديد
-                    </button>
-                </div>
-            )}
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {sections.map(sectionType => (
-                    <div key={sectionType} className={`bg-white dark:bg-slate-800 p-4 rounded-lg shadow-lg border-2 ${sectionStyles[sectionType].border}`}>
-                        <div className={`flex items-center gap-3 mb-3`}>
-                            <SectionIcon sectionType={sectionType} className={`w-7 h-7 ${sectionStyles[sectionType].text}`} />
-                            <h3 className={`text-xl font-bold ${sectionStyles[sectionType].text}`}>{sectionTypeTitles[sectionType]}</h3>
-                        </div>
-                        <hr className={`border-t ${sectionStyles[sectionType].border} mb-4`} />
-                        <div className="space-y-4">
-                            {studentData.achievements.filter(a => a.type === sectionType).map(achievement => (
-                                <AchievementCard key={achievement.id} achievement={achievement} />
-                            ))}
-                            {studentData.achievements.filter(a => a.type === sectionType).length === 0 && (
-                                <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">لا توجد إنجازات في هذا القسم بعد.</p>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-  };
-
-  const SkillsView = () => {
-    const [newSkillName, setNewSkillName] = useState('');
-    const [newSkillLevel, setNewSkillLevel] = useState<Skill['level']>(1);
-    
-    const handleAddSkill = (e: React.FormEvent) => {
-        e.preventDefault();
-        if(!newSkillName.trim()) return;
-        skillHandlers.handleSave({ name: newSkillName, level: newSkillLevel });
-        setNewSkillName('');
-        setNewSkillLevel(1);
-    };
-
-    return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
-                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">مهاراتي</h2>
-                        <p className="text-slate-600 dark:text-slate-300 mt-2">قائمة بالمهارات التي أمتلكها وأعمل على تطويرها.</p>
-                    </div>
-                     <AnimatedHeader page="skills" />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {studentData.skills.map(skill => (
-                    <div key={skill.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-center">
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{skill.name}</h3>
-                            <div className="flex items-center mt-2">
-                                {[...Array(5)].map((_, i) => (
-                                    <svg key={i} className={`w-5 h-5 ${i < skill.level ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                ))}
-                            </div>
-                        </div>
-                        {mode === 'admin' && (
-                            <button onClick={() => skillHandlers.handleDelete(skill.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"><TrashIcon /></button>
-                        )}
-                    </div>
-                ))}
-            </div>
-            
-            {mode === 'admin' && (
-                 <form onSubmit={handleAddSkill} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-bold mb-4">إضافة مهارة جديدة</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" value={newSkillName} onChange={e => setNewSkillName(e.target.value)} placeholder="اسم المهارة" className="md:col-span-2 w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
-                        <select value={newSkillLevel} onChange={e => setNewSkillLevel(Number(e.target.value) as Skill['level'])} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
-                            {[1, 2, 3, 4, 5].map(level => <option key={level} value={level}>{level} - {"⭐".repeat(level)}</option>)}
-                        </select>
-                    </div>
-                    <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
-                </form>
-            )}
-        </div>
-    );
-  };
-
-  const SubjectsView = () => {
-    const [newSubjectName, setNewSubjectName] = useState('');
-    const [newSubjectReason, setNewSubjectReason] = useState('');
-
-    const handleAddSubject = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newSubjectName.trim() || !newSubjectReason.trim()) return;
-        subjectHandlers.handleSave({ name: newSubjectName, reason: newSubjectReason });
-        setNewSubjectName('');
-        setNewSubjectReason('');
-    };
-
-    return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
-                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">موادي المفضلة</h2>
-                        <p className="text-slate-600 dark:text-slate-300 mt-2">المواد الدراسية التي أستمتع بها ولماذا.</p>
-                    </div>
-                    <AnimatedHeader page="subjects" />
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                {studentData.subjects.map(subject => (
-                     <div key={subject.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-5 flex justify-between items-start">
-                        <div className="flex-grow">
-                             <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{subject.name}</h3>
-                             <p className="text-slate-600 dark:text-slate-300 mt-1">{subject.reason}</p>
-                        </div>
-                         {mode === 'admin' && (
-                             <button onClick={() => subjectHandlers.handleDelete(subject.id)} className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0 ml-4"><TrashIcon /></button>
-                         )}
-                    </div>
-                ))}
-            </div>
-
-            {mode === 'admin' && (
-                <form onSubmit={handleAddSubject} className="mt-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-bold mb-4">إضافة مادة جديدة</h3>
-                    <div className="space-y-4">
-                        <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="اسم المادة" className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
-                        <textarea value={newSubjectReason} onChange={e => setNewSubjectReason(e.target.value)} placeholder="لماذا تحب هذه المادة؟" rows={3} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"></textarea>
-                    </div>
-                    <button type="submit" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">إضافة</button>
-                </form>
-            )}
-        </div>
-    );
+  const achievementCardProps: Omit<AchievementCardProps, 'achievement'> = {
+    mode,
+    isAiLoading,
+    setViewingCommentsFor,
+    setPlayingGame,
+    handleGetAiFeedback,
+    setEditingSection,
+    handleDeleteAchievement,
   };
   
-  const AchievementTimelineCard: React.FC<{ achievement: AchievementSection }> = ({ achievement }) => (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 w-full">
-        <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">{new Date(achievement.lastUpdated).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        <h4 className="font-bold text-slate-800 dark:text-slate-100">{achievement.title}</h4>
-        <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{achievement.content}</p>
-    </div>
-  );
-
-  const TimelineView = () => {
-    const sortedAchievements = [...studentData.achievements].sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
-    
-    return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-8">
-                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">الخط الزمني للإنجازات</h2>
-                        <p className="text-slate-600 dark:text-slate-300 mt-2">رحلة إنجازاتي مرتبة من الأحدث إلى الأقدم.</p>
-                    </div>
-                    <AnimatedHeader page="timeline" />
-                </div>
-            </div>
-
-            <div className="relative">
-                {/* Vertical line */}
-                <div 
-                    className="absolute h-full border-r-2 border-slate-200 dark:border-slate-700 top-0 left-6 md:left-1/2 md:-translate-x-1/2" 
-                    style={{ right: 'auto' }}
-                ></div>
-
-                <div className="space-y-12">
-                    {sortedAchievements.map((achievement, index) => {
-                        const isEven = index % 2 === 0;
-                        return (
-                            <div key={achievement.id} className={`relative md:flex md:items-center ${!isEven ? 'md:flex-row-reverse' : ''}`}>
-                                
-                                <div className="absolute z-10 flex items-center justify-center w-12 h-12 bg-blue-500 rounded-full shadow-lg top-0 left-6 transform -translate-x-1/2 md:left-1/2">
-                                    <SectionIcon sectionType={achievement.type} className="w-6 h-6 text-white" />
-                                </div>
-
-                                <div className="hidden md:block md:w-1/2"></div>
-                                
-                                <div className="w-full pl-20 md:w-1/2 md:px-8">
-                                    <AchievementTimelineCard achievement={achievement} />
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </div>
-    );
-  };
-  
-  const CommentsModal: React.FC<{ 
-    section: AchievementSection | null; 
-    onClose: () => void; 
-  }> = ({ section, onClose }) => {
-    if (!section) return null;
-
-    return (
-        <Modal isOpen={!!section} onClose={onClose} title={`تعليقات على: ${section.title}`}>
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {section.comments.length === 0 ? (
-                    <p className="text-slate-500 dark:text-slate-400 text-center py-4">لا توجد تعليقات بعد.</p>
-                ) : (
-                    section.comments.map(comment => (
-                        <div key={comment.id} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 flex justify-between items-start gap-2">
-                           <div className="flex-grow">
-                                <div className="flex justify-between items-center mb-1">
-                                    <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{comment.teacherName}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(comment.timestamp).toLocaleString('ar-SA')}</p>
-                                </div>
-                                <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
-                            </div>
-                             {mode === 'admin' && (
-                                <button 
-                                    onClick={() => handleDeleteComment(section.id, comment.id)} 
-                                    className="p-2 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
-                                    title="حذف التعليق"
-                                >
-                                    <TrashIcon className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    ))
-                )}
-            </div>
-             <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
-                <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
-                <div className="space-y-3">
-                    {mode !== 'admin' && (
-                        <input
-                            type="text"
-                            value={newCommentAuthor[section.id] || ''}
-                            onChange={(e) => setNewCommentAuthor(prev => ({ ...prev, [section.id]: e.target.value }))}
-                            placeholder="اسمك"
-                            className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                        />
-                    )}
-                    <div className="flex gap-2">
-                        <textarea
-                            value={newComment[section.id] || ''}
-                            onChange={(e) => setNewComment(prev => ({ ...prev, [section.id]: e.target.value }))}
-                            placeholder="اكتب تعليقك هنا..."
-                            rows={2}
-                            className="flex-grow p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none"
-                        />
-                        <button onClick={() => handleAddComment(section.id)} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors self-start">
-                            <SendIcon />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Modal>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-500">
-      <Header />
+      <Header 
+        mode={mode} 
+        view={view} 
+        setView={setView} 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+        toggleTheme={toggleTheme}
+        theme={theme}
+        handleAdminLogout={handleAdminLogout}
+        handleAdminLogin={handleAdminLogin}
+      />
        <main>
-        {view === 'home' && <HomeView />}
-        {view === 'dashboard' && <Dashboard />}
-        {view === 'skills' && <SkillsView />}
-        {view === 'subjects' && <SubjectsView />}
-        {view === 'timeline' && <TimelineView />}
+        {view === 'home' && <HomeView studentData={studentData} mode={mode} setIsProfileModalOpen={setIsProfileModalOpen} setView={setView} />}
+        {view === 'dashboard' && <Dashboard studentData={studentData} mode={mode} setIsAddModalOpen={setIsAddModalOpen} achievementCardProps={achievementCardProps} />}
+        {view === 'skills' && <SkillsView studentData={studentData} mode={mode} skillHandlers={skillHandlers} />}
+        {view === 'subjects' && <SubjectsView studentData={studentData} mode={mode} subjectHandlers={subjectHandlers} />}
+        {view === 'timeline' && <TimelineView studentData={studentData} />}
       </main>
       <footer className="text-center py-6 border-t border-slate-200 dark:border-slate-800 mt-12">
         <p className="text-sm text-slate-500 dark:text-slate-400">&copy; {new Date().getFullYear()} إنجازاتي - {studentData.name}. جميع الحقوق محفوظة.</p>
@@ -878,7 +949,17 @@ const App: React.FC = () => {
           </Modal>
       )}
 
-      <CommentsModal section={viewingCommentsFor} onClose={() => setViewingCommentsFor(null)} />
+      <CommentsModal 
+        section={viewingCommentsFor} 
+        onClose={() => setViewingCommentsFor(null)}
+        mode={mode}
+        newComment={newComment}
+        setNewComment={setNewComment}
+        newCommentAuthor={newCommentAuthor}
+        setNewCommentAuthor={setNewCommentAuthor}
+        handleAddComment={handleAddComment}
+        handleDeleteComment={handleDeleteComment}
+      />
     </div>
   );
 };
