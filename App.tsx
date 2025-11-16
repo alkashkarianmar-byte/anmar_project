@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { AchievementSection, StudentData, TeacherComment, UploadedFile, SectionId, Skill } from './types';
-import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, ImageFileIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, LoginIcon } from './components/icons';
+import { AchievementSection, StudentData, TeacherComment, UploadedFile, SectionId, Skill, Subject } from './types';
+import { GoalIcon, PlanIcon, ProgressIcon, LearnIcon, PresentIcon, SunIcon, MoonIcon, EditIcon, UploadIcon, ImageFileIcon, DocumentFileIcon, SendIcon, GameIcon, SparklesIcon, TimelineIcon, PlusIcon, SkillsIcon, LockIcon, UnlockIcon, TrashIcon, LoginIcon, BookIcon } from './components/icons';
 import Modal from './components/Modal';
 import AchievementGame from './components/AchievementGame';
 import ProfileEditForm from './components/ProfileEditForm';
@@ -25,7 +26,12 @@ const initialData: StudentData = {
       { id: '1', teacherName: 'أ. محمد', comment: 'عمل رائع يا أنمار! مشروعك كان مميزًا جدًا.', timestamp: new Date('2014-11-05T09:00:00Z').toISOString() }
     ], lastUpdated: new Date('2014-11-05T09:00:00Z').toISOString()},
   ],
-  skills: []
+  skills: [],
+  subjects: [
+      { id: 'subject-1', name: 'الرياضيات', reason: 'أحب حل المسائل الصعبة واكتشاف الأنماط في الأرقام والأشكال.' },
+      { id: 'subject-2', name: 'العلوم', reason: 'أستمتع بإجراء التجارب في المختبر وتعلم كيف يعمل العالم من حولنا.' },
+      { id: 'subject-3', name: 'اللغة الإنجليزية', reason: 'أحب تعلم كلمات جديدة والتحدث مع أشخاص من ثقافات مختلفة.' },
+  ]
 };
 
 const sectionTypeTitles: { [key in SectionId]: string } = {
@@ -37,6 +43,38 @@ const sectionTypeTitles: { [key in SectionId]: string } = {
 };
 
 const localStorageKey = 'studentPortfolioData';
+
+const loadStudentData = (): StudentData => {
+    try {
+        const savedDataString = window.localStorage.getItem(localStorageKey);
+        if (savedDataString) {
+            const savedData = JSON.parse(savedDataString);
+            
+            // Merge with initialData to gracefully handle schema changes over time.
+            const mergedData = {
+                ...initialData,
+                ...savedData,
+                achievements: savedData.achievements || initialData.achievements,
+                skills: savedData.skills || initialData.skills,
+                subjects: savedData.subjects || initialData.subjects,
+            };
+            
+            // Ensure nested structures like comments array exist to prevent crashes
+            mergedData.achievements = mergedData.achievements.map((ach: AchievementSection) => ({
+                ...ach,
+                comments: ach.comments || []
+            }));
+
+            return mergedData;
+        }
+    } catch (error) {
+        console.error("Failed to load or parse data from localStorage. Resetting to initial data to prevent app corruption.", error);
+        // If parsing fails, the saved data is corrupted. Remove it.
+        window.localStorage.removeItem(localStorageKey);
+    }
+    // Return initial data if nothing is saved or if there was an error
+    return initialData;
+};
 
 const SectionIcon: React.FC<{ sectionType: SectionId, className?: string }> = ({ sectionType, className }) => {
   switch (sectionType) {
@@ -57,23 +95,55 @@ const AchievementForm: React.FC<{
   const [title, setTitle] = useState(section.title);
   const [content, setContent] = useState(section.content);
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<{url: string; name: string; type: string;} | null>(section.file ? section.file : null);
+  const [fileRemoved, setFileRemoved] = useState(false);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setFilePreview({
+          url: URL.createObjectURL(selectedFile),
+          name: selectedFile.name,
+          type: selectedFile.type,
+      });
+      setFileRemoved(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRemoveFile = () => {
+    setFile(null);
+    setFilePreview(null);
+    setFileRemoved(true);
+    // Also reset the file input visually
+    const fileInput = document.getElementById('file') as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedSection = { ...section, title, content, lastUpdated: new Date().toISOString() };
-    if (file) {
-      updatedSection.file = {
-        name: file.name,
-        url: URL.createObjectURL(file),
-        type: file.type,
-      };
+    
+    if (file) { // A new file was uploaded
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+        updatedSection.file = {
+            name: file.name,
+            url: dataUrl,
+            type: file.type,
+        };
+    } else if (fileRemoved) { // File was explicitly removed
+        updatedSection.file = undefined;
+    } else { // No change to file, keep original
+        updatedSection.file = section.file;
     }
+
     onSave(updatedSection);
     onClose();
   };
@@ -101,6 +171,25 @@ const AchievementForm: React.FC<{
       </div>
       <div>
         <label htmlFor="file" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">رفع ملف (صورة أو مستند)</label>
+        {filePreview && (
+          <div className="flex items-center justify-between gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg my-2 bg-slate-50 dark:bg-slate-700/50">
+            <div className="flex items-center gap-3 overflow-hidden">
+              {filePreview.type.startsWith('image/') ?
+                <img src={filePreview.url} alt="preview" className="w-12 h-12 object-cover rounded-md" /> :
+                <DocumentFileIcon className="w-10 h-10 text-slate-500" />
+              }
+              <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{filePreview.name}</p>
+            </div>
+            <button 
+              type="button" 
+              onClick={handleRemoveFile}
+              className="p-2 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+              aria-label="Remove file"
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        )}
         <input
           type="file"
           id="file"
@@ -131,7 +220,7 @@ const AchievementAddForm: React.FC<{
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
         alert("الرجاء إدخال العنوان والوصف.");
@@ -144,9 +233,15 @@ const AchievementAddForm: React.FC<{
         type,
     };
     if (file) {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       newSection.file = {
         name: file.name,
-        url: URL.createObjectURL(file),
+        url: dataUrl,
         type: file.type,
       };
     }
@@ -260,25 +355,66 @@ const SkillAddForm: React.FC<{
     );
 };
 
+const SubjectAddForm: React.FC<{
+  onSave: (newSubject: Omit<Subject, 'id'>) => void;
+  onClose: () => void;
+}> = ({ onSave, onClose }) => {
+    const [name, setName] = useState('');
+    const [reason, setReason] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim() || !reason.trim()) {
+            alert("الرجاء إدخال اسم المادة وسبب تفضيلك لها.");
+            return;
+        }
+        onSave({ name, reason });
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+                <label htmlFor="subject-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">اسم المادة</label>
+                <input
+                    id="subject-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="مثال: التاريخ"
+                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+             <div>
+                <label htmlFor="subject-reason" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">لماذا أحب هذه المادة؟</label>
+                <textarea
+                    id="subject-reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={4}
+                    placeholder="اشرح لماذا تستمتع بدراسة هذه المادة..."
+                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 transition-colors">إلغاء</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">إضافة المادة</button>
+            </div>
+        </form>
+    );
+};
+
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [view, setView] = useState<'home' | 'dashboard' | 'timeline' | 'skills'>('home');
-  const [studentData, setStudentData] = useState<StudentData>(() => {
-    try {
-        const savedData = window.localStorage.getItem(localStorageKey);
-        return savedData ? JSON.parse(savedData) : initialData;
-    } catch (error) {
-        console.error("Could not load data from localStorage", error);
-        return initialData;
-    }
-  });
+  const [view, setView] = useState<'home' | 'dashboard' | 'timeline' | 'skills' | 'subjects'>('home');
+  const [studentData, setStudentData] = useState<StudentData>(loadStudentData);
   
   const [editingSection, setEditingSection] = useState<AchievementSection | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
-  const [playingGame, setPlayingGame] = useState<SectionId | null>(null);
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [playingGame, setPlayingGame] = useState<AchievementSection | null>(null);
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [isAiLoading, setIsAiLoading] = useState<{ [key: string]: boolean }>({});
   
@@ -344,6 +480,15 @@ const App: React.FC = () => {
       }
   };
 
+  const handleDeleteSubject = (subjectId: string) => {
+      if (window.confirm('هل أنت متأكد من حذف هذه المادة؟')) {
+          setStudentData(prev => ({
+              ...prev,
+              subjects: prev.subjects.filter(s => s.id !== subjectId)
+          }));
+      }
+  };
+
   const handleSaveNewAchievement = (newSectionData: Omit<AchievementSection, 'id' | 'lastUpdated' | 'comments'>) => {
     const newAchievement: AchievementSection = {
       ...newSectionData,
@@ -360,6 +505,14 @@ const App: React.FC = () => {
             id: `skill-${Date.now()}`,
         };
         setStudentData(prev => ({ ...prev, skills: [...prev.skills, newSkill] }));
+    };
+
+    const handleSaveNewSubject = (newSubjectData: Omit<Subject, 'id'>) => {
+        const newSubject: Subject = {
+            ...newSubjectData,
+            id: `subject-${Date.now()}`,
+        };
+        setStudentData(prev => ({ ...prev, subjects: [...prev.subjects, newSubject] }));
     };
 
   const handleAddComment = (sectionId: string) => {
@@ -462,6 +615,7 @@ const App: React.FC = () => {
                     <button onClick={() => setView('home')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'home' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الرئيسية</button>
                     <button onClick={() => setView('dashboard')} className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>الإنجازات</button>
                     <button onClick={() => setView('skills')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'skills' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><SkillsIcon className="w-4 h-4" /> مهاراتي</button>
+                    <button onClick={() => setView('subjects')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'subjects' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><BookIcon className="w-4 h-4" /> موادي المفضلة</button>
                     <button onClick={() => setView('timeline')} className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${view === 'timeline' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><TimelineIcon className="w-4 h-4" /> الخط الزمني</button>
                     <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                         {theme === 'light' ? <MoonIcon className="w-5 h-5 text-slate-600" /> : <SunIcon className="w-5 h-5 text-yellow-400" />}
@@ -548,7 +702,7 @@ const App: React.FC = () => {
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white">{section.title}</h3>
                       </div>
                        <div className="flex items-center gap-1">
-                           <button onClick={() => setPlayingGame(section.type)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Play game for ${section.title}`}>
+                           <button onClick={() => setPlayingGame(section)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={`Play game for ${section.title}`}>
                                <GameIcon />
                            </button>
                            {mode === 'admin' && (
@@ -643,7 +797,7 @@ const App: React.FC = () => {
                 {studentData.skills.map(skill => (
                     <div key={skill.id} className="group relative bg-white dark:bg-slate-800 rounded-xl shadow p-5 text-center flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700">
                         {mode === 'admin' && (
-                             <button onClick={() => handleDeleteSkill(skill.id)} className="absolute top-2 right-2 p-1.5 rounded-full text-red-500 bg-red-100 dark:bg-red-900/50 opacity-0 group-hover:opacity-100 transition-opacity" aria-label={`Delete ${skill.name}`}>
+                             <button onClick={() => handleDeleteSkill(skill.id)} className="absolute top-2 right-2 p-1.5 rounded-full text-red-500 bg-red-100 dark:bg-red-900/50 transition-opacity" aria-label={`Delete ${skill.name}`}>
                                <TrashIcon className="w-4 h-4" />
                            </button>
                         )}
@@ -667,6 +821,62 @@ const App: React.FC = () => {
                                 <PlusIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" />
                             </div>
                             <h3 className="font-semibold text-md text-slate-700 dark:text-slate-200">إضافة مهارة</h3>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
+    </div>
+  );
+
+  const SubjectsView = () => (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 md:mb-12">
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-white text-center md:text-right">ماداتي المفضلة</h2>
+            <AnimatedHeader page="subjects" />
+        </div>
+        {studentData.subjects.length === 0 ? (
+            <div className="text-center py-16 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                <BookIcon className="w-16 h-16 mx-auto text-slate-400 dark:text-slate-500 mb-4"/>
+                <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200">لم تقم بإضافة أي مواد مفضلة بعد</h3>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 mb-6">هذا هو المكان المناسب لعرض المواد التي تستمتع بها.</p>
+                {mode === 'admin' && (
+                    <button 
+                        onClick={() => setIsSubjectModalOpen(true)}
+                        className="flex items-center gap-2 mx-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
+                    >
+                        <PlusIcon className="w-5 h-5" /> أضف مادتك المفضلة الأولى
+                    </button>
+                )}
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {studentData.subjects.map(subject => (
+                    <div key={subject.id} className="relative bg-white dark:bg-slate-800 rounded-xl shadow p-6 flex flex-col border border-slate-200 dark:border-slate-700">
+                        {mode === 'admin' && (
+                             <button onClick={() => handleDeleteSubject(subject.id)} className="absolute top-2 right-2 p-1.5 rounded-full text-red-500 bg-red-100 dark:bg-red-900/50" aria-label={`Delete ${subject.name}`}>
+                               <TrashIcon className="w-4 h-4" />
+                           </button>
+                        )}
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
+                                <BookIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{subject.name}</h3>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 flex-grow">{subject.reason}</p>
+                    </div>
+                ))}
+                {mode === 'admin' && (
+                     <div 
+                        className="bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-300 min-h-[140px] hover:border-blue-500 dark:hover:border-blue-500"
+                        onClick={() => setIsSubjectModalOpen(true)}
+                    >
+                        <div className="text-center">
+                            <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-3 transition-colors">
+                                <PlusIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+                            </div>
+                            <h3 className="font-semibold text-md text-slate-700 dark:text-slate-200">إضافة مادة</h3>
                         </div>
                     </div>
                 )}
@@ -719,6 +929,7 @@ const App: React.FC = () => {
         {view === 'home' && <HomeView />}
         {view === 'dashboard' && <Dashboard />}
         {view === 'skills' && <SkillsView />}
+        {view === 'subjects' && <SubjectsView />}
         {view === 'timeline' && <TimelineView />}
       </main>
       <footer className="text-center py-6 border-t border-slate-200 dark:border-slate-800 mt-12">
@@ -753,6 +964,15 @@ const App: React.FC = () => {
             onClose={() => setIsSkillModalOpen(false)}
           />
       </Modal>
+      <Modal isOpen={isSubjectModalOpen} onClose={() => setIsSubjectModalOpen(false)} title="إضافة مادة مفضلة جديدة">
+          <SubjectAddForm 
+            onSave={(newSubjectData) => {
+                handleSaveNewSubject(newSubjectData);
+                setIsSubjectModalOpen(false);
+            }}
+            onClose={() => setIsSubjectModalOpen(false)}
+          />
+      </Modal>
       <Modal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} title="تعديل الملف الشخصي">
         <ProfileEditForm 
             student={studentData}
@@ -763,9 +983,9 @@ const App: React.FC = () => {
             onClose={() => setIsProfileModalOpen(false)}
         />
       </Modal>
-       <Modal isOpen={!!playingGame} onClose={() => setPlayingGame(null)} title={`لعبة: ${sectionTypeTitles[playingGame!] || ''}`}>
+       <Modal isOpen={!!playingGame} onClose={() => setPlayingGame(null)} title={`لعبة: ${playingGame?.title || ''}`}>
         {playingGame && (
-          <AchievementGame sectionId={playingGame} />
+          <AchievementGame section={playingGame} />
         )}
       </Modal>
        <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="دخول المدير">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StudentData } from '../types';
 import { UploadIcon } from './icons';
@@ -11,14 +12,16 @@ interface ProfileEditFormProps {
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ student, onSave, onClose }) => {
   const [name, setName] = useState(student.name);
   const [bio, setBio] = useState(student.bio);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(student.profileImageUrl);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

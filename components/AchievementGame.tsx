@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { SectionId } from '../types';
+import { AchievementSection, SectionId } from '../types';
 
 // Custom hook for declarative intervals
 function useInterval(callback: () => void, delay: number | null) {
@@ -342,103 +343,90 @@ const LearningQuizGame: React.FC = () => {
     );
 };
 
-// --- Game 5: Presentation Certificate Designer ---
-const Stamp: React.FC<{ type: string; onDragStart: (e: React.DragEvent<HTMLDivElement>, type: string) => void }> = ({ type, onDragStart }) => {
-    const emojiMap: { [key: string]: string } = {
-        trophy: '🏆',
-        star: '⭐',
-        medal: '🥇',
-        ribbon: '🎀'
-    };
-    return (
-        <div
-            draggable
-            onDragStart={(e) => onDragStart(e, type)}
-            className="w-12 h-12 flex items-center justify-center bg-slate-200 dark:bg-slate-600 rounded-full cursor-grab text-3xl"
-        >
-            {emojiMap[type]}
-        </div>
-    );
-};
+// --- Game 5: Presentation Word Cloud Game ---
+const PresentationWordCloudGame: React.FC<{ content: string }> = ({ content }) => {
+    const [gameState, setGameState] = useState<'playing' | 'finished'>('playing');
 
-type PlacedStamp = { id: number; type: string; x: number; y: number };
+    const arabicStopWords = useMemo(() => new Set(['من', 'في', 'على', 'الى', 'عن', 'و', 'يا', 'هو', 'هي', 'هذا', 'هذه', 'أن', 'تم', 'قد', 'لا', 'ما', 'مع', 'كل', 'كان', 'يكون', 'لم', 'لن', 'أو', 'إلى', 'عن', 'فيه', 'به', 'له', 'منه']), []);
 
-const PresentationCertificateGame: React.FC = () => {
-    const [placedStamps, setPlacedStamps] = useState<PlacedStamp[]>([]);
-    const certificateRef = useRef<HTMLDivElement>(null);
-
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, type: string) => {
-        e.dataTransfer.setData('stampType', type);
-    };
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        if (!certificateRef.current) return;
-
-        const stampType = e.dataTransfer.getData('stampType');
-        if (!stampType) return;
+    const words = useMemo(() => {
+        const wordCounts = content
+            .split(/[\s،.()]+/)
+            .filter(word => word.length > 2 && !arabicStopWords.has(word))
+            .reduce((acc, word) => {
+                acc[word] = (acc[word] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
         
-        const rect = certificateRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        return Object.entries(wordCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([text, count]) => ({ text, count }));
+    }, [content, arabicStopWords]);
 
-        setPlacedStamps(prev => [...prev, {
-            id: Date.now(),
-            type: stampType,
-            x: x,
-            y: y
-        }]);
+    const keywords = useMemo(() => new Set(words.slice(0, Math.min(5, words.length)).map(w => w.text)), [words]);
+    const [foundKeywords, setFoundKeywords] = useState<Set<string>>(new Set());
+    
+    type PositionedWord = { text: string; count: number; x: number; y: number; size: number; rotation: number; };
+    const [positionedWords, setPositionedWords] = useState<PositionedWord[]>([]);
+
+    useEffect(() => {
+        setPositionedWords(words.map(word => ({
+            ...word,
+            x: Math.random() * 80 + 10,
+            y: Math.random() * 80 + 10,
+            size: 1 + word.count * 0.5,
+            rotation: Math.random() * 60 - 30,
+        })));
+    }, [words]);
+
+    const handleWordClick = (word: string) => {
+        if (keywords.has(word)) {
+            setFoundKeywords(prev => {
+                const newSet = new Set(prev);
+                newSet.add(word);
+                if (newSet.size === keywords.size && keywords.size > 0) {
+                    setGameState('finished');
+                }
+                return newSet;
+            });
+        }
     };
     
     const resetGame = () => {
-        setPlacedStamps([]);
+        setFoundKeywords(new Set());
+        setGameState('playing');
     };
     
-    const emojiMap: { [key: string]: string } = {
-        trophy: '🏆',
-        star: '⭐',
-        medal: '🥇',
-        ribbon: '🎀'
-    };
-
-
     return (
-         <GameWrapper title="مصمم الشهادات" instructions="اسحب الرموز إلى الشهادة لتزيينها!">
-             <div className="w-full h-full flex flex-col lg:flex-row">
-                 <div className="w-full lg:w-3/4 h-full p-2">
-                     <div ref={certificateRef} onDragOver={handleDragOver} onDrop={handleDrop} className="relative w-full h-full bg-yellow-50 dark:bg-yellow-900/30 border-4 border-dashed border-yellow-300 dark:border-yellow-700 rounded-md">
-                         <div className="absolute top-4 left-1/2 -translate-x-1/2 text-center">
-                             <h4 className="text-xl font-bold text-yellow-800 dark:text-yellow-200">شهادة إنجاز</h4>
-                             <p className="text-sm text-yellow-700 dark:text-yellow-300">تُمنح إلى الطالب المبدع</p>
-                         </div>
-                         {placedStamps.map(stamp => (
-                            <div key={stamp.id} className="absolute text-4xl transform -translate-x-1/2 -translate-y-1/2" style={{ left: stamp.x, top: stamp.y }}>
-                                {emojiMap[stamp.type]}
-                            </div>
-                         ))}
-                     </div>
-                 </div>
-                 <div className="w-full lg:w-1/4 h-full flex lg:flex-col items-center justify-center gap-4 p-4 border-t-2 lg:border-t-0 lg:border-r-2 border-slate-200 dark:border-slate-600">
-                     <h4 className="font-bold mb-2 hidden lg:block">الرموز</h4>
-                     <Stamp type="trophy" onDragStart={handleDragStart} />
-                     <Stamp type="star" onDragStart={handleDragStart} />
-                     <Stamp type="medal" onDragStart={handleDragStart} />
-                     <Stamp type="ribbon" onDragStart={handleDragStart} />
-                      <button onClick={resetGame} className="mt-auto px-4 py-2 bg-red-600 text-white font-semibold rounded-lg text-sm hover:bg-red-700 transition-colors">
-                        إعادة تعيين
+        <GameWrapper title="سحابة الكلمات الرئيسية" instructions={keywords.size > 0 ? `ابحث عن ${keywords.size} كلمات رئيسية من إنجازك!` : 'لا توجد كلمات رئيسية كافية لبدء اللعبة.'}>
+            <div className="w-full h-[350px] relative">
+                {positionedWords.map(word => (
+                    <button
+                        key={word.text}
+                        onClick={() => handleWordClick(word.text)}
+                        disabled={foundKeywords.has(word.text) || keywords.size === 0}
+                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 font-bold
+                            ${foundKeywords.has(word.text) ? 'text-green-500 scale-110' : 'text-slate-700 dark:text-slate-300 hover:text-blue-500'}
+                            disabled:cursor-default disabled:hover:text-slate-700 disabled:dark:hover:text-slate-300
+                        `}
+                        style={{
+                            left: `${word.x}%`,
+                            top: `${word.y}%`,
+                            fontSize: `${Math.min(word.size, 4)}rem`,
+                            transform: `rotate(${word.rotation}deg)`,
+                        }}
+                    >
+                        {word.text}
                     </button>
-                 </div>
-             </div>
+                ))}
+            </div>
+            {gameState === 'finished' && <GameResult score="أحسنت!" onPlayAgain={resetGame} />}
         </GameWrapper>
     );
 };
 
-const AchievementGame: React.FC<{ sectionId: SectionId }> = ({ sectionId }) => {
-  switch (sectionId) {
+const AchievementGame: React.FC<{ section: AchievementSection }> = ({ section }) => {
+  switch (section.type) {
     case 'goals':
       return <GoalTargetGame />;
     case 'planning':
@@ -448,9 +436,9 @@ const AchievementGame: React.FC<{ sectionId: SectionId }> = ({ sectionId }) => {
     case 'learning':
       return <LearningQuizGame />;
     case 'presentation':
-      return <PresentationCertificateGame />;
+      return <PresentationWordCloudGame content={section.content} />;
     default:
-      const _exhaustiveCheck: never = sectionId;
+      const _exhaustiveCheck: never = section.type;
       return (
           <div className="text-center p-8">
               <h3 className="font-bold">عفوًا!</h3>

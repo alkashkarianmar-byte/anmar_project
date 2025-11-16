@@ -29,6 +29,12 @@ export interface Skill {
   level: 1 | 2 | 3 | 4 | 5;
 }
 
+export interface Subject {
+  id: string;
+  name: string;
+  reason: string;
+}
+
 export interface StudentData {
   name: string;
   grade: string;
@@ -39,4 +45,5 @@ export interface StudentData {
   bio: string;
   achievements: AchievementSection[];
   skills: Skill[];
+  subjects: Subject[];
 }

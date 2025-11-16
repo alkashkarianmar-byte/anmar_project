@@ -85,9 +85,27 @@ const TimelineAnimation = () => (
     </svg>
 );
 
+// Animation for Subjects
+const SubjectsAnimation = () => (
+    <svg viewBox="0 0 200 100" className="w-48 h-24">
+        <style>{`
+            .book-stack-book { animation: stack 2s ease-out forwards; opacity: 0; transform: translateX(-20px); }
+            @keyframes stack { to { opacity: 1; transform: translateX(0); } }
+            .glow { animation: glow 2.5s ease-in-out infinite alternate; }
+            @keyframes glow { from { filter: drop-shadow(0 0 2px #f6e05e); } to { filter: drop-shadow(0 0 8px #f6e05e); } }
+        `}</style>
+        <g transform="translate(60 20)">
+            <rect x="0" y="50" width="80" height="15" fill="#a0522d" className="book-stack-book" style={{ animationDelay: '0s' }} />
+            <rect x="5" y="35" width="70" height="15" fill="#38a169" className="book-stack-book" style={{ animationDelay: '0.3s' }} />
+            <rect x="10" y="20" width="60" height="15" fill="#3182ce" className="book-stack-book" style={{ animationDelay: '0.6s' }} />
+            <text x="30" y="15" fontSize="18" className="glow book-stack-book" style={{ animationDelay: '0.9s' }}>⭐</text>
+        </g>
+    </svg>
+);
+
 
 interface AnimatedHeaderProps {
-    page: 'home' | 'dashboard' | 'skills' | 'timeline';
+    page: 'home' | 'dashboard' | 'skills' | 'timeline' | 'subjects';
 }
 
 const AnimatedHeader: React.FC<AnimatedHeaderProps> = ({ page }) => {
@@ -98,6 +116,7 @@ const AnimatedHeader: React.FC<AnimatedHeaderProps> = ({ page }) => {
             case 'dashboard': return <DashboardAnimation />;
             case 'skills': return <SkillsAnimation />;
             case 'timeline': return <TimelineAnimation />;
+            case 'subjects': return <SubjectsAnimation />;
             default: return null;
         }
     }
