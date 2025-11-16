@@ -355,16 +355,18 @@ const App: React.FC = () => {
       // Update Firestore
       await db.collection('studentData').doc('main').update({ achievements: updatedAchievements });
 
-      // Update local state
+      // Update local state first to ensure UI consistency
       setStudentData(prev => prev ? { ...prev, achievements: updatedAchievements } : null);
 
-      // Update the state for the currently open modal if it matches
+      // Now, update the modal's state directly from the new source of truth to avoid stale data
       if (viewingCommentsFor?.id === sectionId) {
-        setViewingCommentsFor(prev => {
-          if (!prev) return null;
-          const updatedComments = prev.comments.filter(c => c.id !== commentId);
-          return { ...prev, comments: updatedComments };
-        });
+        const updatedSectionForModal = updatedAchievements.find(s => s.id === sectionId);
+        if (updatedSectionForModal) {
+          setViewingCommentsFor(updatedSectionForModal);
+        } else {
+          // Fallback: if the section is somehow gone, close the modal.
+          setViewingCommentsFor(null);
+        }
       }
 
     } catch (error) {
@@ -418,6 +420,11 @@ const App: React.FC = () => {
   };
   const skillHandlers = createCrudHandlers<Skill>('skills');
   const subjectHandlers = createCrudHandlers<Subject>('subjects');
+
+  const handleAdminLoginAndCloseCommentModal = () => {
+    setViewingCommentsFor(null);
+    handleAdminLogin();
+  };
 
   // --- Render methods ---
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -790,7 +797,7 @@ const App: React.FC = () => {
                     ))
                 )}
             </div>
-            {mode === 'admin' && (
+            {mode === 'admin' ? (
                 <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
                     <h4 className="font-bold mb-2">إضافة تعليق جديد</h4>
                     <div className="flex gap-2">
@@ -806,6 +813,16 @@ const App: React.FC = () => {
                         </button>
                     </div>
                 </div>
+            ) : (
+              <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 p-4 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                      إضافة التعليقات متاحة للمعلمين فقط. 
+                      <button onClick={handleAdminLoginAndCloseCommentModal} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline pr-1">
+                          سجل دخولك
+                      </button> 
+                      لإضافة تعليق.
+                  </p>
+              </div>
             )}
         </Modal>
     );
