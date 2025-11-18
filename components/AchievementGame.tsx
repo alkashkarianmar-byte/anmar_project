@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AchievementSection, SectionId } from '../types';
 
@@ -25,10 +26,10 @@ function useInterval(callback: () => void, delay: number | null) {
 
 
 const GameWrapper: React.FC<{ title: string; instructions: string; children: React.ReactNode }> = ({ title, instructions, children }) => (
-  <div className="text-center text-slate-700 dark:text-slate-300">
+  <div className="text-center text-slate-700 dark:text-slate-300 flex flex-col items-center">
     <h3 className="text-lg font-bold mb-2">{title}</h3>
-    <p className="text-sm mb-4">{instructions}</p>
-    <div className="relative bg-slate-100 dark:bg-slate-700 rounded-lg min-h-[350px] flex items-center justify-center p-2 overflow-hidden select-none">
+    <p className="text-sm mb-4 max-w-md">{instructions}</p>
+    <div className="relative bg-slate-100 dark:bg-slate-700 rounded-lg w-full min-h-[350px] flex items-center justify-center p-2 overflow-hidden select-none">
       {children}
     </div>
   </div>
@@ -46,26 +47,12 @@ const GameResult: React.FC<{ score: number | string; onPlayAgain: () => void }> 
   </div>
 );
 
-// --- Game 1: Goal Target Game ---
-const GoalTargetGame: React.FC = () => {
-    type Target = { id: number; x: number; y: number };
+// --- Game 1: Clicker Game ---
+const ClickerGame: React.FC = () => {
     const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
     const [score, setScore] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(15);
-    const [targets, setTargets] = useState<Target[]>([]);
+    const [timeLeft, setTimeLeft] = useState(10);
 
-    const createTarget = () => {
-        if (targets.length < 5) { // Max 5 targets at a time
-             setTargets(prev => [...prev, {
-                id: Date.now(),
-                x: Math.random() * 90, // %
-                y: Math.random() * 90, // %
-            }]);
-        }
-    };
-    
-    useInterval(createTarget, gameState === 'playing' ? 800 : null);
-    
     useInterval(() => {
         if (gameState === 'playing') {
             if (timeLeft > 0) {
@@ -78,34 +65,33 @@ const GoalTargetGame: React.FC = () => {
 
     const handleStart = () => {
         setScore(0);
-        setTimeLeft(15);
-        setTargets([]);
+        setTimeLeft(10);
         setGameState('playing');
     };
 
-    const handleTargetClick = (id: number) => {
-        setScore(s => s + 10);
-        setTargets(t => t.filter(target => target.id !== id));
+    const handleButtonClick = () => {
+        if (gameState === 'playing') {
+            setScore(s => s + 1);
+        }
     };
 
     return (
-        <GameWrapper title="إصابة الهدف" instructions="انقر على أكبر عدد ممكن من الأهداف قبل انتهاء الوقت!">
+        <GameWrapper title="تحدي النقر السريع" instructions="انقر على الزر بأسرع ما يمكن خلال 10 ثوانٍ!">
             {gameState === 'idle' && (
                  <button onClick={handleStart} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                     ابدأ اللعبة
                 </button>
             )}
             {gameState === 'playing' && (
-                <div className="w-full h-full absolute inset-0">
+                <div className="w-full h-full absolute inset-0 flex flex-col items-center justify-center p-4">
                      <div className="absolute top-2 right-2 font-bold text-lg">النتيجة: {score}</div>
                      <div className="absolute top-2 left-2 font-bold text-lg">الوقت: {timeLeft}</div>
-                    {targets.map(target => (
-                        <button key={target.id} onClick={() => handleTargetClick(target.id)}
-                            className="absolute w-10 h-10 bg-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-pulse"
-                            style={{ left: `${target.x}%`, top: `${target.y}%` }}
-                            aria-label="Target"
-                        />
-                    ))}
+                    <button 
+                        onClick={handleButtonClick}
+                        className="w-48 h-48 bg-red-500 text-white text-2xl font-bold rounded-full transform transition-transform active:scale-95 shadow-lg hover:shadow-xl focus:outline-none"
+                    >
+                        انقر هنا!
+                    </button>
                 </div>
             )}
             {gameState === 'finished' && <GameResult score={score} onPlayAgain={handleStart} />}
@@ -204,6 +190,7 @@ const ProgressReactionGame: React.FC = () => {
             if (timerRef.current) {
                 setStatus('ready');
                 setMessage('انقر الآن!');
+                timerRef.current = Date.now();
             }
         }, Math.random() * 2000 + 1000);
     };
@@ -219,8 +206,9 @@ const ProgressReactionGame: React.FC = () => {
             setStatus('idle');
             setMessage('لقد نقرت مبكرًا! انقر للمحاولة مرة أخرى.');
         }
-        if(status === 'ready') {
-            setResult(Math.floor(Math.random() * 100) + 200);
+        if(status === 'ready' && timerRef.current) {
+            setResult(Date.now() - timerRef.current);
+            timerRef.current = null;
             setStatus('clicked');
             setMessage('انقر للعب مرة أخرى');
         }
@@ -231,11 +219,11 @@ const ProgressReactionGame: React.FC = () => {
 
     useEffect(() => {
         return () => {
-            if (timerRef.current) {
+            if (typeof timerRef.current === 'number' && status !== 'ready') {
                 clearTimeout(timerRef.current);
             }
         };
-    }, []);
+    }, [status]);
 
     return (
         <GameWrapper title="اختبار سرعة التقدم" instructions="عندما يتحول المربع إلى اللون الأخضر، انقر بأسرع ما يمكن!">
@@ -256,56 +244,64 @@ const ProgressReactionGame: React.FC = () => {
 };
 
 // --- Game 4: Learning Quiz Game ---
-const quizQuestions = [
-    {
-        question: "ما هي عاصمة المملكة العربية السعودية؟",
-        answers: ["جدة", "الرياض", "الدمام", "مكة"],
-        correct: "الرياض",
-    },
-    {
-        question: "أي كوكب يُعرف بـ 'الكوكب الأحمر'؟",
-        answers: ["الأرض", "المريخ", "زحل", "المشتري"],
-        correct: "المريخ",
-    },
-    {
-        question: "كم عدد القارات في العالم؟",
-        answers: ["5", "6", "7", "8"],
-        correct: "7",
-    },
-    {
-        question: "ما هو أكبر حيوان في العالم؟",
-        answers: ["الفيل", "الحوت الأزرق", "الزرافة", "القرش الأبيض"],
-        correct: "الحوت الأزرق",
-    }
+const quizQuestionPool = [
+    { question: "ما هي عاصمة المملكة العربية السعودية؟", answers: ["جدة", "الرياض", "الدمام", "مكة"], correct: "الرياض" },
+    { question: "أي كوكب يُعرف بـ 'الكوكب الأحمر'؟", answers: ["الأرض", "المريخ", "زحل", "المشتري"], correct: "المريخ" },
+    { question: "كم عدد القارات في العالم؟", answers: ["5", "6", "7", "8"], correct: "7" },
+    { question: "ما هو أكبر حيوان في العالم؟", answers: ["الفيل", "الحوت الأزرق", "الزرافة", "القرش الأبيض"], correct: "الحوت الأزرق" },
+    { question: "ما هو أطول نهر في العالم؟", answers: ["الأمازون", "المسيسيبي", "النيل", "اليانغتسي"], correct: "النيل" },
+    { question: "كم عدد الصلوات المفروضة في اليوم؟", answers: ["3", "4", "5", "6"], correct: "5" },
+    { question: "ما هو الغاز الذي نتنفسه للبقاء على قيد الحياة؟", answers: ["النيتروجين", "ثاني أكسيد الكربون", "الأكسجين", "الهيدروجين"], correct: "الأكسجين" },
+    { question: "من هو مؤسس المملكة العربية السعودية؟", answers: ["الملك فيصل", "الملك فهد", "الملك عبدالله", "الملك عبدالعزيز"], correct: "الملك عبدالعزيز" },
+    { question: "ما هو أكبر محيط في العالم؟", answers: ["الأطلسي", "الهندي", "المتجمد الشمالي", "الهادئ"], correct: "الهادئ" },
+    { question: "ما هي العملية التي تستخدمها النباتات لصنع طعامها؟", answers: ["التنفس", "النتح", "البناء الضوئي", "الامتصاص"], correct: "البناء الضوئي" },
+    { question: "ما هو الرمز الكيميائي للماء؟", answers: ["O2", "CO2", "H2O", "NaCl"], correct: "H2O" },
+    { question: "كم ضلعاً للمكعب؟", answers: ["6", "8", "12", "10"], correct: "12" },
+    { question: "ما هو أسرع حيوان بري؟", answers: ["الأسد", "النمر", "الفهد", "الحصان"], correct: "الفهد" },
+    { question: "في أي قارة تقع مصر؟", answers: ["آسيا", "أفريقيا", "أوروبا", "أستراليا"], correct: "أفريقيا" },
+    { question: "ما هو لون علم المملكة العربية السعودية؟", answers: ["أخضر وأبيض", "أحمر وأبيض", "أزرق وأصفر", "أسود وأخضر"], correct: "أخضر وأبيض" },
 ];
+
+const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
 
 const LearningQuizGame: React.FC = () => {
     const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
+    const [questions, setQuestions] = useState(() => shuffleArray(quizQuestionPool).slice(0, 5));
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [score, setScore] = useState(0);
+    const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
 
     const handleStart = () => {
         setScore(0);
         setCurrentQuestionIndex(0);
+        setQuestions(shuffleArray(quizQuestionPool).slice(0, 5));
         setGameState('playing');
+        setFeedback(null);
     };
 
     const handleAnswerClick = (answer: string) => {
-        if (answer === quizQuestions[currentQuestionIndex].correct) {
+        const isCorrect = answer === questions[currentQuestionIndex].correct;
+        if (isCorrect) {
             setScore(s => s + 1);
+            setFeedback({ message: 'إجابة صحيحة!', isCorrect: true });
+        } else {
+            setFeedback({ message: `إجابة خاطئة. الصحيحة هي: ${questions[currentQuestionIndex].correct}`, isCorrect: false });
         }
 
-        const nextQuestion = currentQuestionIndex + 1;
-        if (nextQuestion < quizQuestions.length) {
-            setCurrentQuestionIndex(nextQuestion);
-        } else {
-            setGameState('finished');
-        }
+        setTimeout(() => {
+            setFeedback(null);
+            const nextQuestion = currentQuestionIndex + 1;
+            if (nextQuestion < questions.length) {
+                setCurrentQuestionIndex(nextQuestion);
+            } else {
+                setGameState('finished');
+            }
+        }, 1500);
     };
 
     if (gameState === 'idle') {
         return (
-            <GameWrapper title="تحدي المعلومات" instructions="أجب عن الأسئلة التالية لاختبار معلوماتك العامة.">
+            <GameWrapper title="تحدي المعلومات" instructions="أجب عن 5 أسئلة لاختبار معلوماتك العامة.">
                 <button onClick={handleStart} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                     ابدأ التحدي
                 </button>
@@ -315,16 +311,16 @@ const LearningQuizGame: React.FC = () => {
 
     if (gameState === 'finished') {
         return (
-            <GameWrapper title="تحدي المعلومات" instructions="أجب عن الأسئلة التالية لاختبار معلوماتك العامة.">
-                <GameResult score={`${score} / ${quizQuestions.length}`} onPlayAgain={handleStart} />
+            <GameWrapper title="تحدي المعلومات" instructions="أجب عن 5 أسئلة لاختبار معلوماتك العامة.">
+                <GameResult score={`${score} / ${questions.length}`} onPlayAgain={handleStart} />
             </GameWrapper>
         );
     }
     
-    const currentQuestion = quizQuestions[currentQuestionIndex];
+    const currentQuestion = questions[currentQuestionIndex];
 
     return (
-        <GameWrapper title="تحدي المعلومات" instructions={`سؤال ${currentQuestionIndex + 1} من ${quizQuestions.length}`}>
+        <GameWrapper title="تحدي المعلومات" instructions={`سؤال ${currentQuestionIndex + 1} من ${questions.length}`}>
             <div className="w-full p-4 flex flex-col items-center">
                 <h4 className="text-xl font-semibold mb-6 text-center">{currentQuestion.question}</h4>
                 <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
@@ -332,106 +328,165 @@ const LearningQuizGame: React.FC = () => {
                         <button 
                             key={answer} 
                             onClick={() => handleAnswerClick(answer)}
-                            className="p-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-transform hover:scale-105"
+                            disabled={!!feedback}
+                            className="p-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed"
                         >
                             {answer}
                         </button>
                     ))}
+                </div>
+                 {feedback && (
+                    <div className={`mt-4 text-lg font-bold ${feedback.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
+                        {feedback.message}
+                    </div>
+                )}
+            </div>
+        </GameWrapper>
+    );
+};
+
+// --- Game 5: Snake Game ---
+
+const BOARD_SIZE = 20; // 20x20 grid
+
+type Position = { x: number; y: number };
+
+const generateRandomPosition = (snakeBody: Position[] = []): Position => {
+    let position: Position;
+    do {
+        position = {
+            x: Math.floor(Math.random() * BOARD_SIZE),
+            y: Math.floor(Math.random() * BOARD_SIZE),
+        };
+    } while (snakeBody.some(segment => segment.x === position.x && segment.y === position.y));
+    return position;
+};
+
+const SnakeGame: React.FC = () => {
+    const [gameState, setGameState] = useState<'idle' | 'playing' | 'finished'>('idle');
+    const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
+    const [apple, setApple] = useState<Position>(() => generateRandomPosition([{ x: 10, y: 10 }]));
+    const [direction, setDirection] = useState<{ x: number; y: number }>({ x: 1, y: 0 });
+    const [score, setScore] = useState(0);
+
+    const handleStart = () => {
+        const startSnake = [{ x: 10, y: 10 }];
+        setGameState('playing');
+        setSnake(startSnake);
+        setApple(generateRandomPosition(startSnake));
+        setDirection({ x: 1, y: 0 }); // Move right
+        setScore(0);
+    };
+
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        e.preventDefault();
+        switch (e.key) {
+            case 'ArrowUp':
+                if (direction.y === 0) setDirection({ x: 0, y: -1 });
+                break;
+            case 'ArrowDown':
+                if (direction.y === 0) setDirection({ x: 0, y: 1 });
+                break;
+            case 'ArrowLeft':
+                if (direction.x === 0) setDirection({ x: -1, y: 0 });
+                break;
+            case 'ArrowRight':
+                if (direction.x === 0) setDirection({ x: 1, y: 0 });
+                break;
+        }
+    }, [direction]);
+
+    useEffect(() => {
+        if (gameState === 'playing') {
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [gameState, handleKeyDown]);
+
+    const gameLoop = () => {
+        const newSnake = [...snake];
+        const head = { ...newSnake[0] };
+
+        head.x += direction.x;
+        head.y += direction.y;
+
+        if (head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE) {
+            setGameState('finished');
+            return;
+        }
+
+        for (let i = 1; i < newSnake.length; i++) {
+            if (head.x === newSnake[i].x && head.y === newSnake[i].y) {
+                setGameState('finished');
+                return;
+            }
+        }
+        
+        newSnake.unshift(head);
+
+        if (head.x === apple.x && head.y === apple.y) {
+            setScore(s => s + 1);
+            setApple(generateRandomPosition(newSnake));
+        } else {
+            newSnake.pop();
+        }
+
+        setSnake(newSnake);
+    };
+
+    useInterval(gameLoop, gameState === 'playing' ? 150 : null);
+    
+    const changeDirection = (newDir: {x: number, y: number}) => {
+       if (gameState !== 'playing') return;
+       if (newDir.x !== 0 && direction.x === 0) setDirection(newDir);
+       if (newDir.y !== 0 && direction.y === 0) setDirection(newDir);
+    }
+
+    return (
+        <GameWrapper title="لعبة الثعبان" instructions="استخدم أسهم لوحة المفاتيح أو الأزرار لتحريك الثعبان وتناول التفاح. تجنب الاصطدام بالجدران أو بنفسك!">
+             <div className="flex flex-col items-center w-full">
+                <div 
+                    className="w-full max-w-[350px] aspect-square relative bg-slate-200 dark:bg-slate-800 rounded-md grid"
+                    style={{ gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`, gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`}}
+                >
+                    {gameState === 'idle' && (
+                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                            <button onClick={handleStart} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                                ابدأ اللعبة
+                            </button>
+                        </div>
+                    )}
+                    {gameState === 'playing' && (
+                       <>
+                         {snake.map((segment, index) => (
+                            <div key={index} className="bg-green-500 rounded-sm" style={{ gridColumn: segment.x + 1, gridRow: segment.y + 1 }}></div>
+                         ))}
+                         <div className="bg-red-500 rounded-full" style={{ gridColumn: apple.x + 1, gridRow: apple.y + 1 }}></div>
+                       </>
+                    )}
+                    {gameState === 'finished' && <GameResult score={score} onPlayAgain={handleStart} />}
+                    <div className="absolute top-1 right-2 text-slate-800 dark:text-slate-100 font-bold bg-black/20 px-2 py-1 rounded z-10">
+                        النتيجة: {score}
+                    </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 w-48 md:hidden">
+                    <div></div>
+                    <button onClick={() => changeDirection({x: 0, y: -1})} className="p-3 bg-slate-300 dark:bg-slate-600 rounded-lg active:bg-slate-400 dark:active:bg-slate-500">▲</button>
+                    <div></div>
+                    <button onClick={() => changeDirection({x: -1, y: 0})} className="p-3 bg-slate-300 dark:bg-slate-600 rounded-lg active:bg-slate-400 dark:active:bg-slate-500">◀</button>
+                    <button onClick={() => changeDirection({x: 0, y: 1})} className="p-3 bg-slate-300 dark:bg-slate-600 rounded-lg active:bg-slate-400 dark:active:bg-slate-500">▼</button>
+                    <button onClick={() => changeDirection({x: 1, y: 0})} className="p-3 bg-slate-300 dark:bg-slate-600 rounded-lg active:bg-slate-400 dark:active:bg-slate-500">▶</button>
                 </div>
             </div>
         </GameWrapper>
     );
 };
 
-// --- Game 5: Presentation Word Cloud Game ---
-const PresentationWordCloudGame: React.FC<{ content: string }> = ({ content }) => {
-    const [gameState, setGameState] = useState<'playing' | 'finished'>('playing');
-
-    const arabicStopWords = useMemo(() => new Set(['من', 'في', 'على', 'الى', 'عن', 'و', 'يا', 'هو', 'هي', 'هذا', 'هذه', 'أن', 'تم', 'قد', 'لا', 'ما', 'مع', 'كل', 'كان', 'يكون', 'لم', 'لن', 'أو', 'إلى', 'عن', 'فيه', 'به', 'له', 'منه']), []);
-
-    const words = useMemo(() => {
-        const wordCounts = (content || '')
-            .split(/[\s،.()]+/)
-            .filter(word => word.length > 2 && !arabicStopWords.has(word))
-            // FIX: The reduce function's initial value was untyped, causing its result to be inferred as `{}`,
-            // which in turn caused a type error in the `.sort()` method. Providing a generic type argument
-            // to `reduce` ensures `wordCounts` is correctly typed as `Record<string, number>`.
-            .reduce<Record<string, number>>((acc, word) => {
-                acc[word] = (acc[word] || 0) + 1;
-                return acc;
-            }, {});
-        
-        return Object.entries(wordCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([text, count]) => ({ text, count }));
-    }, [content, arabicStopWords]);
-
-    const keywords = useMemo(() => new Set(words.slice(0, Math.min(5, words.length)).map(w => w.text)), [words]);
-    const [foundKeywords, setFoundKeywords] = useState<Set<string>>(new Set());
-    
-    type PositionedWord = { text: string; count: number; x: number; y: number; size: number; rotation: number; };
-    const [positionedWords, setPositionedWords] = useState<PositionedWord[]>([]);
-
-    useEffect(() => {
-        setPositionedWords(words.map(word => ({
-            ...word,
-            x: Math.random() * 80 + 10,
-            y: Math.random() * 80 + 10,
-            size: 1 + word.count * 0.5,
-            rotation: Math.random() * 60 - 30,
-        })));
-    }, [words]);
-
-    const handleWordClick = (word: string) => {
-        if (keywords.has(word)) {
-            setFoundKeywords(prev => {
-                const newSet = new Set(prev);
-                newSet.add(word);
-                if (newSet.size === keywords.size && keywords.size > 0) {
-                    setGameState('finished');
-                }
-                return newSet;
-            });
-        }
-    };
-    
-    const resetGame = () => {
-        setFoundKeywords(new Set());
-        setGameState('playing');
-    };
-    
-    return (
-        <GameWrapper title="سحابة الكلمات الرئيسية" instructions={keywords.size > 0 ? `ابحث عن ${keywords.size} كلمات رئيسية من إنجازك!` : 'لا توجد كلمات رئيسية كافية لبدء اللعبة.'}>
-            <div className="w-full h-[350px] relative">
-                {positionedWords.map(word => (
-                    <button
-                        key={word.text}
-                        onClick={() => handleWordClick(word.text)}
-                        disabled={foundKeywords.has(word.text) || keywords.size === 0}
-                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 font-bold
-                            ${foundKeywords.has(word.text) ? 'text-green-500 scale-110' : 'text-slate-700 dark:text-slate-300 hover:text-blue-500'}
-                            disabled:cursor-default disabled:hover:text-slate-700 disabled:dark:hover:text-slate-300
-                        `}
-                        style={{
-                            left: `${word.x}%`,
-                            top: `${word.y}%`,
-                            fontSize: `${Math.min(word.size, 4)}rem`,
-                            transform: `rotate(${word.rotation}deg)`,
-                        }}
-                    >
-                        {word.text}
-                    </button>
-                ))}
-            </div>
-            {gameState === 'finished' && <GameResult score="أحسنت!" onPlayAgain={resetGame} />}
-        </GameWrapper>
-    );
-};
 
 const AchievementGame: React.FC<{ section: AchievementSection }> = ({ section }) => {
   switch (section.type) {
     case 'goals':
-      return <GoalTargetGame />;
+      return <ClickerGame />;
     case 'planning':
       return <PlanningOrderGame />;
     case 'progress':
@@ -439,11 +494,8 @@ const AchievementGame: React.FC<{ section: AchievementSection }> = ({ section })
     case 'learning':
       return <LearningQuizGame />;
     case 'presentation':
-      return <PresentationWordCloudGame content={section.content} />;
+      return <SnakeGame />;
     default:
-      // FIX: This compile-time check was failing because `section.type` was being inferred as `any`
-      // due to how data is loaded from localStorage. Removing it fixes the error without
-      // affecting runtime behavior, as the default case correctly handles unknown types.
       return (
           <div className="text-center p-8">
               <h3 className="font-bold">عفوًا!</h3>
